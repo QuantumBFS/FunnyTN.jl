@@ -38,6 +38,10 @@ l1 ∈ (4, 2)  # split a leg into two of sizes (4, 2)
 ## MPS/MPO Tensor Contraction
 ```julia
 # t1 ⌶ t2  # transfer matrix, desired but not allowed
+t1[→] # t1 ⧷ <last axis>
+t1[←] # t1 ⧷ 1
+t1[↑] # t1 ⧷ 2 for both mps and mpo
+t1[↓] # t1 ⧷ 3 for only mpo
 
 t1 ⊂ (t2, [t3])  # contract from left (appear in inner product of MPS)
 (t1, [t2]) ⊃ t3  # contract from right
