@@ -1,37 +1,28 @@
-struct MPSTensor{T, AT<:StridedArray{T, 3}} <: StridedArray{T, 3}
-    data::AT
+"""MPS Tensor"""
+const MPSTensor{T} = AbstractArray{T, 3}
+
+#struct MPSTensor{T, AT<:DenseArray{T, 3}} <: Tensor{T, 3}
+#    data::AT
+#    MPSTensor(ts::AbstractArray{T, 3}) where T = new{T, typeof(ts)}(ts)
+#end
+#@forward MPSTensor.data setindex!, size, eltype
+#data(mt::MPSTensor) = mt.data
+#convert(MPSTensor, da::DenseArray{T, 3}) where T = MPSTensor(da)
+
+struct MPS{T, TT<:AbstractArray{T, 3}} <: TensorTrain{T, TT}
+    tensors::Vector{TT}
+    S::Vector{T}
+    l::Int
+    MPS(tensors::Vector{TT}, S::Vector{T}, l::Int) where {T, TT<:AbstractArray{T, 3}} = new{T, TT}(tensors, S, l)
 end
 
-@forward MPSTensor.data getindex, setindex!, size
+mps(tensors::Vector{TT}, p::Pair{Int, Vector{T}}) where {T, TT<:MPSTensor{T}} = MPS(tensors, p.second, p.first)
+mps(tensors::Vector{TT}) where {T, TT<:MPSTensor{T}} = MPS(tensors, 0=>T[1])
 
-tensors(mps::MPS) = mps.data
-llink(tt::MPSTensor) = Leg(tt, 1)
-rlink(tt::MPSTensor) = Leg(tt, 3)
+tensors(mps::MPS) = mps.tensors
+singular_values(mps::MPS) = mps.S.diag
+l_canonical(mps::MPS) = mps.l
 
-"""
-    slink(tt::MPSTensor)
-
-physical leg of an MPS Tensor.
-"""
-slink(tt::MPSTensor) = Leg(tt, 2)
-
-"""
-    MPS{T} <: TensorTrain{T}
-
-Matrix Product State
-
-We use the following convention for numbering legs:
- 1--A--3
-    |
-    2
-
-llink -> 1
-slink -> 2
-rlink -> 3
-"""
-struct MPS{T, TT} <: TensorTrain{T, TT<:MPSTensor{T}}
-    data::Vector{TT}
-    n::Int
+function Base.show(io::IO, mps::MPS)
+    print(io, "MPS($(length(mps)))  ", size(mps[1], 1),(0==mps.l ? "ˢ" : ""), join(["-[$(size(t, 2))]-$(size(t, 3))$(i==mps.l ? "*" : "")" for (i, t) in enumerate(mps)], ""))
 end
-
-nsite(mps::MPS) = mps.n
