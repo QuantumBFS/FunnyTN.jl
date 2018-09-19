@@ -1,6 +1,6 @@
 using FunnyTN
 using TensorOperations, LinearAlgebra
-using BenchmarkTools, Test
+using Test
 
 @testset "mpstensor" begin
     ts1 = randn(ComplexF64, 8,2,8)
@@ -24,7 +24,9 @@ end
     @test left'*left ≈ I
 end
 
+#=
 @testset "mps" begin
     v = randn(ComplexF64, 1<<7)
     @test v |> vec2mps |> statevec ≈ v
 end
+=#
