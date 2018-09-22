@@ -7,4 +7,10 @@ Pictograph for tensor networks in quantum computing.
 
 See our funny [proposal](docs/src/dev/proposal.md) of utf-8 based design.
 
+**FunnyNN is in progress!**
 
+## To Develop/Run Tests
+`]` enter Pkg mode, type `dev git@github.com:QuantumBFS/FunnyTN.jl.git`.
+In the same Pkg mode, type `test FunnyTN` to run tests.
+
+The project folder is `~/.julia/dev/FunnyTN`.

@@ -1,28 +1,12 @@
-glue(t1::Tensor{T1, N1}, t2::Diagonal) where {T1, N1} = Leg(t1, N1) * t2.diag
-glue(t1::Tensor{T1, N1}, t2::Tensor) where {T1, N1} = glue(Leg(t1, N1), Leg(t2, 1))
-glue(t1::Diagonal, t2::Tensor{T2, N2}) where {T2, N2} = t1.diag * Leg(t2, N2)
-glue(s::UniformScaling, t2::Tensor) = s*t2
-glue(t2::Tensor, s::UniformScaling) = t2*s
-glue(legs::Leg...) = reduce(glue, legs)
-function glue(l1::Leg{C1, AT1}, l2::Leg{C2, AT2}) where {C1, C2, T1, T2, N1, N2, AT1<:Tensor{T1, N1}, AT2<:Tensor{T2, N2}}
-    ts1 = parent(l1)
-    ts2 = parent(l2)
-    labels1 = collect(1:N1)
-    labels2 = collect(N1+1:N1+N2)
-    for (a1, a2) in zip(l1.axes, l2.axes)
-        labels2[a2] = labels1[a1]
-    end
-    tensorcontract(ts1, labels1, ts2, labels2)
-end
-
-function Base.vec(mps::MPS)
-    res = I
+function vec(mps::MPS{T}) where T
+    B = bondsize(mps, 0)
+    res = Matrix{T}(I, B, B)
     for i=1:mps.l
-        res = reshape(res ∾ mps[i], :, bondsize(mps, i))
+        res = reshape(res ∘ mps[i], :, bondsize(mps, i))
     end
-    res *= Diagonal(mps.S)
+    mulaxis!(res, mps.S, 2)
     for i=mps.l+1:nsite(mps)
-        res = reshape(res ∾ mps[i], :, bondsize(mps, i))
+        res = reshape(res ∘ mps[i], :, bondsize(mps, i))
     end
     res |> vec
 end
@@ -95,7 +79,7 @@ function decompose(::Type{Val{:SVD_L}}, state::Matrix; tol=0)
     # remove zeros from v
     kpmask = abs.(res.S) .> tol
     ri = kpmask |> sum
-    state = res.U[:, kpmask] * Diagonal(res.S[kpmask])
+    state = mulaxis!(res.U[:, kpmask], res.S[kpmask], 2)
     V = res.Vt[kpmask, :]
     state, V
 end
@@ -105,7 +89,7 @@ function decompose(::Type{Val{:SVD_R}}, state::Matrix; tol=0)
     # remove zeros from v
     kpmask = abs.(res.S) .> tol
     ri = kpmask |> sum
-    state = Diagonal(res.S[kpmask]) * res.Vt[kpmask,:]
+    state = mulaxis!(res.Vt[kpmask,:], res.S[kpmask], 1)
     U = res.U[:, kpmask]
     U, state
 end

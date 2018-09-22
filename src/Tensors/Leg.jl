@@ -4,6 +4,8 @@ struct Leg{C, AT<:Tensor}
     axes::NTuple{C, Int}
 end
 Leg(ts::Tensor{T}, axes::Int...) where T = Leg{length(axes), typeof(ts)}(ts, axes)
+lastleg(ts::Tensor{T, N}) where {T, N} = Leg(ts, N)
+firstleg(ts::Tensor) = Leg(ts, 1)
 
 length(leg::Leg) = prod(axis->size(leg.ts, axis), leg.axes)
 parent(leg::Leg) = leg.ts

@@ -12,4 +12,5 @@ docs/site/
 _*.dat
 *.swp
 __pycache__/
+_local/
 Manifest.toml
