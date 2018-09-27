@@ -10,3 +10,7 @@ end
 @testset "linalg" begin
     include("linalg.jl")
 end
+
+@testset "interfaces" begin
+    include("interfaces.jl")
+end

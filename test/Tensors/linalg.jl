@@ -9,8 +9,8 @@ using Test
     res = reshape(Diagonal(v) ∘ amat, 4, 7, 5)
     @test size(permutedims(a, [3,2,1]) ∘ a) == (5,7,7,5)
     @test permutedims(a, [3,2,1]) ∘ Diagonal(v) == permutedims(res, [3,2,1])
-    @test res ≈ mulaxis!(a |> copy, v, 1)
-    @test res ≈ mulaxis!(a |> copy, Diagonal(v), 1)
+    @test res ≈ mulaxis!(a |> copy, 1, v)
+    @test res ≈ mulaxis!(a |> copy, 1, Diagonal(v))
 end
 
 @testset "glue" begin

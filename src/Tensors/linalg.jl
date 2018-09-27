@@ -1,10 +1,12 @@
-function mulaxis!(A::AbstractArray, v::AbstractVector, axis::Int)
+function mulaxis!(A::AbstractArray, axis::Int, v::AbstractVector)
+    size(A, axis) == length(v) || throw(DimensionMismatch("can not multiple vector of length $(v |>length) on axis of size $(size(A, axis))!"))
     for i in 1:size(A, axis)
         rmul!(selectdim(A, axis, i), v[i])
     end
     A
 end
-mulaxis!(A::AbstractArray, v::Diagonal, axis::Int) = mulaxis!(A, v.diag, axis)
+mulaxis!(A::AbstractArray, axis::Int, v::Diagonal) = mulaxis!(A, axis, v.diag)
+mulaxis(A::AbstractArray, axis::Int, v) = mulaxis!(copy(A), axis, v)
 
 function chain_tensors(t1::Tensor{T1, N1}, t2::Tensor) where {T1, N1}
     shape1 = size(t1)

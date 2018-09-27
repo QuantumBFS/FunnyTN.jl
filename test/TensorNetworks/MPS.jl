@@ -18,9 +18,9 @@ end
 @testset "constructor" begin
     m = rand_mps(2, [1,8,8,8,8,8,8,8,1])
     bcond(m) == :open
-    @test_throws DimensionMismatch MPS{:periodic}([randn(3,2,4), randn(4,2,4)], 0=>[0.0])
-    @test_throws DimensionMismatch MPS([randn(1,2,4), randn(5,2,1)])
-    @test_throws DimensionMismatch MPS([randn(1,2,4), randn(4,1,1)])
+    @test_throws DimensionMismatch MPS{:periodic}([randn(3,2,4), randn(4,2,4)], 0=>[0.0]) |> assert_valid
+    @test_throws DimensionMismatch MPS([randn(1,2,4), randn(5,2,1)]) |> assert_valid
+    @test_throws DimensionMismatch MPS([randn(1,2,4), randn(4,1,1)]) |> assert_valid
     @test bondsize(m, 1) == 8
     @test bondsize(m, 0) == bondsize(m, 8) == 1
 end
@@ -43,4 +43,24 @@ end
         @test hsize(mps1) == (1<<7,)
         @test mps1 |> vec ≈ [hgetindex(mps1,i) for i=1:1<<7]
     end
+end
+
+@testset "canomove" begin
+    mps = rand_mps(2, [1,2,4,4,2,1])
+    v0 = mps |> vec
+    @test_throws ArgumentError canomove!(mps, :left) |> println
+
+    canomove!(mps, :right)
+    @test assert_valid(mps)
+    @test l_canonical(mps) == 1
+    canomove!(mps, 3)
+    @test l_canonical(mps) == 4
+    canomove!(mps, -2)
+    @test l_canonical(mps) == 2
+    canomove!(mps, :left)
+    @test l_canonical(mps) == 1
+    canomove!(mps, 0)
+    @test l_canonical(mps) == 1
+    v1 = mps |> vec
+    @test v0 ≈ v1
 end

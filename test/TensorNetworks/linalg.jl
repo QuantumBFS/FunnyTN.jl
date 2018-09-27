@@ -17,10 +17,10 @@ end
 
 @testset "decompose" begin
     v = randn(2, 4)
-    left, right = decompose(:SVD_L, v)
+    left, right = decompose(:SVD, :left, v)
     @test left*right ≈ v
     @test right*right' ≈ I
-    left, right = decompose(:SVD_R, v)
+    left, right = decompose(:SVD, :right, v)
     @test left*right ≈ v
     @test left'*left ≈ I
 end

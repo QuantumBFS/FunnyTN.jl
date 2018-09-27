@@ -1,8 +1,8 @@
-⊕(isfirst::Bool, islast::Bool, bc::Symbol, ts::Tensor...) = ⊕(Val{isfirst}, Val{islast}, Val{bc}, ts...)
-⊕(::Type{<:Val}, ::Type{<:Val}, ::Type{<:Val}, ts::Tensor{T, N}...) where {T, N} = cat(ts..., dims=(1, N))
-⊕(::Type{Val{false}}, ::Type{Val{true}}, ::Type{Val{:open}}, ts::Tensor{T, N}...) where {T, N} = cat(ts..., dims=1)
-⊕(::Type{Val{true}}, ::Type{Val{false}}, ::Type{Val{:open}}, ts::Tensor{T, N}...) where {T, N} = cat(ts..., dims=N)
-⊕(::Type{Val{true}}, ::Type{Val{true}}, ::Type{Val{:open}}, ts::Tensor{T, N}...) where {T, N} = sum(ts, dims=1)
+⊕(isfirst::Bool, islast::Bool, bc::Symbol, ts::Tensor...) = ⊕(Val(isfirst), Val(islast), Val(bc), ts...)
+⊕(::Val, ::Val, ::Val, ts::Tensor{T, N}...) where {T, N} = cat(ts..., dims=(1, N))
+⊕(::Val{false}, ::Val{true}, ::Val{:open}, ts::Tensor{T, N}...) where {T, N} = cat(ts..., dims=1)
+⊕(::Val{true}, ::Val{false}, ::Val{:open}, ts::Tensor{T, N}...) where {T, N} = cat(ts..., dims=N)
+⊕(::Val{true}, ::Val{true}, ::Val{:open}, ts::Tensor{T, N}...) where {T, N} = sum(ts, dims=1)
 
 """
 Summation over <MPS>es.
@@ -57,7 +57,7 @@ function vec(tt::TensorTrain{T}) where T
     for i=1:tt.l
         res = reshape(res ∘ tt[i], :, bondsize(tt, i))
     end
-    mulaxis!(res, tt.S, 2)
+    mulaxis!(res, 2, tt.S)
     for i=tt.l+1:nsite(tt)
         res = reshape(res ∘ tt[i], :, bondsize(tt, i))
     end
@@ -93,7 +93,7 @@ function vec2mps(v::Vector{T}; l::Int=0, nflavor::Int=2, method=:SVD, tol=1e-15)
     ri = 1
     for i = 1:l
         state = reshape(state, nflavor * ri, :)
-        U, state = decompose(Symbol(method, :_R), state)
+        U, state = decompose(method, :right, state)
         ri = size(U, 2)
         ML[i] = reshape(U, :, nflavor, ri)
     end
@@ -102,7 +102,7 @@ function vec2mps(v::Vector{T}; l::Int=0, nflavor::Int=2, method=:SVD, tol=1e-15)
     ri = 1
     for i in 1:nsite-l
         state = reshape(state, :, nflavor * ri)
-        state, V = decompose(Symbol(method, :_L), state)
+        state, V = decompose(method, :left, state)
         ri = size(V, 1)
         ML[nsite-i+1] = reshape(V, ri, nflavor, :)
     end
@@ -110,44 +110,151 @@ function vec2mps(v::Vector{T}; l::Int=0, nflavor::Int=2, method=:SVD, tol=1e-15)
     MPS(ML, l=>S)
 end
 
-function decompose(::Type{Val{:QR_R}}, state::Matrix; tol=0)
+function decompose(::Val{:QR}, ::Val{:right}, state::Matrix; D::Int=typemax(Int), tol=0)
     U, state = qr(state)
-    kpmask = sum(norm, state, dims=2) > tol
-    ri = kpmask |> sum
+    kpmask = _truncmask(sum(norm, state, dims=1), tol, D)
     state = state[kpmask]
     U = U[:, kpmask]
     U, state
 end
 
-function decompose(::Type{Val{:QR_L}}, state::Matrix; tol=0)
+function decompose(::Val{:QR}, ::Val{:left}, state::Matrix; D::Int=typemax(Int), tol=0)
     state, V = rq(state)
-    kpmask = sum(norm, state, dims=1) .> tol
-    ri = kpmask.sum()
+    kpmask = _truncmask(sum(norm, state, dims=1), tol, D)
     state = state[:, kpmask]
     V = V[kpmask]
     state, V
 end
 
-function decompose(::Type{Val{:SVD_L}}, state::Matrix; tol=0)
-    res = svd(state)
-    # remove zeros from v
-    kpmask = abs.(res.S) .> tol
-    ri = kpmask |> sum
-    state = mulaxis!(res.U[:, kpmask], res.S[kpmask], 2)
-    V = res.Vt[kpmask, :]
-    state, V
+function _truncmask(S::Vector, tol::Real, D::Int)
+    D = min(D, length(res.S))
+    mval = max(sort(S, rev=true)[D], tol)
+    S .>= mval
 end
 
-function decompose(::Type{Val{:SVD_R}}, state::Matrix; tol=0)
+"""
+    svdtrunc(state::Matrix; tol=0)
+
+SVD decomposition and truncate.
+"""
+function svdtrunc(state::Matrix; D::Int=typemax(Int), tol=0)
     res = svd(state)
     # remove zeros from v
-    kpmask = abs.(res.S) .> tol
-    ri = kpmask |> sum
-    state = mulaxis!(res.Vt[kpmask,:], res.S[kpmask], 1)
-    U = res.U[:, kpmask]
-    U, state
+    D = min(D, length(res.S))
+    nkeep = D
+    for i=1:D
+        if res.S[i] < tol
+            nkeep = i-1
+            break
+        end
+    end
+    res.U[:, 1:nkeep], res.S[1:nkeep], res.Vt[1:nkeep, :]
 end
 
-function decompose(s::Symbol, state::Matrix; tol=0)
-    decompose(Val{s}, state, tol=tol)
+function decompose(::Val{:SVD}, ::Val{:left}, state::Matrix; D::Int=typemax(Int), tol=0)
+    U, S, V = svdtrunc(state, tol=tol)
+    mulaxis!(U, 2, S), V
+end
+
+function decompose(::Val{:SVD}, ::Val{:right}, state::Matrix; D::Int=typemax(Int), tol=0)
+    U, S, V = svdtrunc(state, tol=tol)
+    U, mulaxis!(V, 1, S)
+end
+
+function decompose(method::Symbol, direction::Symbol, state::Matrix; D::Int=typemax(Int), tol=0)
+    decompose(Val(method), Val(direction), state, tol=tol)
+end
+
+function canomove!(mps::MPS{:open}, ::Val{:_rightmost})
+    S = sqrt(sum(mulaxis!(mps[end], 1, mps.S).^2))
+    mps.S = [S]
+    mps[end] ./= S
+    mps.l += 1
+    mps
+end
+function canomove!(mps::MPS{:open}, ::Val{:_leftmost})
+    S = sqrt(sum(mulaxis!(mps[1], 3, mps.S).^2))
+    mps.S = [S]
+    mps[1] ./= S
+    mps.l -= 1
+    mps
+end
+
+"""
+    canomove!(mps::MPS, direction::Symbol; tol::Real=1e-15, D::Int=typemax(Int64), method=:SVD) -> MPS
+
+move canonical center, direction can be :left, :right or Int (Int means moving right for n step).
+"""
+function canomove!(mps::MPS, direction::Symbol; tol::Real=1e-15, D::Int=typemax(Int64), method=:SVD)
+    # check and prepair data
+    nbit = mps |> nsite
+    l_ = mps.l + (direction == :right ? 1 : -1)
+
+    # bounds check
+    l_ == nbit && return canomove!(mps, Val(:_rightmost))
+    l_ == 0 && return canomove!(mps, Val(:_leftmost))
+    (l_>nbit || l_<0) && throw(ArgumentError("Illegal Move!"))
+
+    nflv = nflavor(mps)
+    A, B = mps[l_], mps[l_+1]
+    direction == :right ? mulaxis!(A, 1, mps.S) : mulaxis!(B, 3, mps.S)
+
+    AB = reshape(A, :, size(A, 3)) * reshape(B, size(B, 1), :)
+    A_, S_, B_ = svdtrunc(AB, D=D, tol=tol)
+    mps[l_] = reshape(A_, :, nflv, size(A_, 2))
+    mps[l_+1] = reshape(B_, size(B_, 1), nflv, :)
+    mps.S = S_
+    mps.l = l_
+    mps
+end
+
+function canomove!(mps::MPS, direction::Integer; tol::Real=1e-15, D::Int=typemax(Int64), method=:SVD)
+    direction == 0 && return mps
+    for i = 1:abs(direction)
+        if direction > 0
+            canomove!(mps, :right, tol=tol, D=D, method=method)
+        else
+            canomove!(mps, :left, tol=tol, D=D, method=method)
+        end
+    end
+    mps
+end
+
+"""
+    compress(mps::MPS, D::Int; tol::Real=1e-15, niter::Int=3, method=:SVD) -> MPS
+
+Compress an mps.
+"""
+function compress!(mps::MPS, D::Int; tol::Real=1e-15, niter::Int=3, method=:SVD)
+    nbit, l = nsite(mps), mps.l
+    M = maximum(bondsizes(mps))
+    dM = max(M - D, 0)
+    for i in 1:niter
+        m1 = D + (dM * ((niter - i - 0.5) / niter)) |> round |> Int
+        m2 = D + (dM * ((niter - i - 1.0) / niter)) |> round |> Int
+        canomove!(mps, nbit - l, tol=tol, D=m1, method=method)
+        canomove!(mps, l-nbit, tol=tol, D=m2, method=method)
+        canomove!(mps, -l, tol=tol, D=m1, method=method)
+        canomove!(mps, l, tol=tol, D=m2, method=method)
+    end
+    mps
+end
+
+"""
+    recanonicalize(mps::MPS; move_right_first::Bool=true, tol::Real=1e-15, D::Int=1000) -> MPS
+
+Trun this MPS into canonical form.
+"""
+function recanonicalize!(mps::MPS; move_right_first::Bool=true, tol::Real=1e-15, D::Int=1000)
+    nbit, l = nsite(mps), mps.l
+    if move_right_first
+        canomove!(mps, nbit - l, tol=tol, D=D)
+        canomove!(mps, -nbit, tol=tol, D=D)
+        canomove!(mps, l, tol=tol, D=D)
+    else
+        canomove!(mps, -l, tol=tol, D=D)
+        canomove!(mps, nbit, tol=tol, D=D)
+        canomove!(mps, l-nbit, tol=tol, D=D)
+    end
+    mps
 end

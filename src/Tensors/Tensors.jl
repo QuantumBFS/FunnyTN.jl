@@ -6,7 +6,7 @@ import Base: +, -, *, /, ∘
 
 export log2i, nqubits, all_equivalent, assert_samesize
 export Tensor, Leg, Bond, lastleg, firstleg
-export glue, mulaxis!, chain_tensors
+export glue, mulaxis!, chain_tensors, mulaxis
 export ∾, ⧷,↑, ↓, ←, →
 
 include("Core.jl")

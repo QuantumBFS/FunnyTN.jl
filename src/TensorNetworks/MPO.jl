@@ -24,7 +24,7 @@ ulink -> 2
 dlink -> 3
 rlink -> 4
 """
-struct MPO{BC, T} <: MPSO{BC, T, 4, MPOTensor{T}}
+mutable struct MPO{BC, T} <: MPSO{BC, T, 4, MPOTensor{T}}
     tensors::Vector{MPOTensor{T}}
     S::Vector{T}
     l::Int
