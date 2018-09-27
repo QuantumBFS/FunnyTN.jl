@@ -29,3 +29,14 @@ end
     v = randn(ComplexF64, 1<<7)
     @test v |> vec2mps |> vec ≈ v
 end
+
+@testset "scalar arithmatics" begin
+    for l = [0, 3, 7]
+        mps1 = rand_mps(ComplexF64, 2, [1,2,4,8,8,4,2,1], l=l)
+        v1 = mps1 |> vec
+        @test mps1*2 |> vec ≈ v1*2
+        @test mps1/2 |> vec ≈ v1/2
+        @test 2*mps1 |> vec ≈ v1*2
+        @test -mps1 |> vec ≈ -v1
+    end
+end

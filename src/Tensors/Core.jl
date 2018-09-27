@@ -23,3 +23,21 @@ for N in [8, 16, 32, 64, 128]
     end
 end
 nqubits(m::AbstractArray) = size(m, 1) |> log2i
+
+"""
+    all_equivalent(v) -> Bool
+
+all entries in v are all equivalent.
+"""
+function all_equivalent(v)::Bool
+    res = true
+    for i in 1:length(v)-1
+        @inbounds res &= v[i] == v[i+1]
+    end
+    res
+end
+
+"""
+    assert_samesize(tensors, dim::Int)
+"""
+assert_samesize(tensors, dim::Int) = all_equivalent([size(t, dim) for t in tensors]) || throw(DimensionMismatch("tensors are not same sized in dimension $dim"))

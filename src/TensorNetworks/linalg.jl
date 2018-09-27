@@ -1,16 +1,70 @@
-function vec(mps::MPS{T}) where T
-    B = bondsize(mps, 0)
-    res = Matrix{T}(I, B, B)
-    for i=1:mps.l
-        res = reshape(res ∘ mps[i], :, bondsize(mps, i))
+⊕(isfirst::Bool, islast::Bool, bc::Symbol, ts::Tensor...) = ⊕(Val{isfirst}, Val{islast}, Val{bc}, ts...)
+⊕(::Type{<:Val}, ::Type{<:Val}, ::Type{<:Val}, ts::Tensor{T, N}...) where {T, N} = cat(ts..., dims=(1, N))
+⊕(::Type{Val{false}}, ::Type{Val{true}}, ::Type{Val{:open}}, ts::Tensor{T, N}...) where {T, N} = cat(ts..., dims=1)
+⊕(::Type{Val{true}}, ::Type{Val{false}}, ::Type{Val{:open}}, ts::Tensor{T, N}...) where {T, N} = cat(ts..., dims=N)
+⊕(::Type{Val{true}}, ::Type{Val{true}}, ::Type{Val{:open}}, ts::Tensor{T, N}...) where {T, N} = sum(ts, dims=1)
+
+"""
+Summation over <MPS>es.
+
+Args:
+    tts (list of <MPS>): instances to be added.
+    labels (list of str): the new labels for added state.
+
+Returns:
+    <MPS>, the added MPS.
+"""
+function sum(tts::Vector{<:MPSO{BC, T, N, TT}}) where {T, BC, N, TT}
+    length(tts) == 0 && raise(ArgumentError("At least one instances are required."))
+    length(tts) == 1 && return tts[0]
+    all_equivalent([l_canonical(tt) for tt in tts]) || raise(ArgumentError("canonicality does not match!"))
+
+    tt0 = tts[1]
+    l = tt0.l
+    hndim = nflavor(tt0)
+    nbit = nsite(tt0)
+    MLs = [[tensors(mps)...] for mps in tts]
+
+    # get S matrix
+    ML = Vector{TT}(undef, nbit)
+    if BC == :open && (l == 0 || l==nbit)  # make open open
+        S = T[1]
+        for (tt, m) in zip(tts, MLs)
+            m[1] *= tt.S[]
+        end
+    else
+        S = cat([singular_values(tt) for tt in tts]..., dims=1)
     end
-    mulaxis!(res, mps.S, 2)
-    for i=mps.l+1:nsite(mps)
-        res = reshape(res ∘ mps[i], :, bondsize(mps, i))
+    for (i, mis) in enumerate(zip(MLs...))
+        ML[i] = ⊕(i==1, i==nbit, BC, mis...)
+    end
+    MPS{BC}(ML, l=>S)
+end
+
++(mps1::T, mps2::T) where T<:MPS = sum([mps1, mps2])
+rmul!(A::MPS, b::Number) = (rmul!(A.S, b); A)
+lmul!(a::Number, B::MPS) = (lmul!(a, B.S); B)
+-(A::MPS) = (-1)*A
+-(A::MPS, B::MPS) = A + (-1)*B
+*(A::MPS, b::Number) = rmul!(copy(A), b)
+/(A::MPS, b::Number) = rmul!(copy(A), 1/b)
+*(a::Number, B::MPS) = lmul!(a, copy(B))
+
+#################### TensorTrain ###############
+function vec(tt::TensorTrain{T}) where T
+    B = bondsize(tt, 0)
+    res = Matrix{T}(I, B, B)
+    for i=1:tt.l
+        res = reshape(res ∘ tt[i], :, bondsize(tt, i))
+    end
+    mulaxis!(res, tt.S, 2)
+    for i=tt.l+1:nsite(tt)
+        res = reshape(res ∘ tt[i], :, bondsize(tt, i))
     end
     res |> vec
 end
 
+##################### MPS ########################
 """
 Parse a normal state into a Matrix produdct state.
 

@@ -24,14 +24,13 @@ ulink -> 2
 dlink -> 3
 rlink -> 4
 """
-struct MPO{T} <: TensorTrain{T, MPOTensor{T}}
+struct MPO{BC, T} <: MPSO{BC, T, 4, MPOTensor{T}}
     tensors::Vector{MPOTensor{T}}
     S::Vector{T}
     l::Int
-    MPO(tensors::Vector{MPOTensor{T}}, S::Vector{T}, l::Int) where T = new{T}(tensors, S, l)
+    MPO{BC}(tensors::Vector{MPOTensor{T}}, S::Vector{T}, l::Int) where {BC, T} = new{BC, T}(tensors, S, l)
+    MPO{BC}(tensors::Vector{MPOTensor{T}}, p::Pair{Int, Vector{T}}=0=>T[1]) where {T, BC} = MPO{BC}(tensors, p.second, p.first)
+    MPO(tensors::Vector{MPOTensor{T}}, p::Pair{Int, Vector{T}}=0=>T[1]) where T = MPO{:open}(tensors, p)
 end
-
-mps(tensors::Vector{MPOTensor{T}}, p::Pair{Int, Vector{T}}) where T = MPO(tensors, p.second, p.first)
-mps(tensors::Vector{MPOTensor{T}}) where T = MPO(tensors, 0=>T[1])
 
 tensors(mpo::MPO) = mpo.tensors
