@@ -107,7 +107,7 @@ function vec2mps(v::Vector{T}; l::Int=0, nflavor::Int=2, method=:SVD, tol=1e-15)
         ML[nsite-i+1] = reshape(V, ri, nflavor, :)
     end
     S = state |> diag
-    mps(ML, l=>S)
+    MPS(ML, l=>S)
 end
 
 function decompose(::Type{Val{:QR_R}}, state::Matrix; tol=0)
