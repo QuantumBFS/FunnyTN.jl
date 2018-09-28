@@ -33,7 +33,7 @@ function glue(l1::Leg{C1, AT1}, l2::Leg{C2, AT2}) where {C1, C2, T1, T2, N1, N2,
     ts2 = parent(l2)
     labels1 = 1:N1
     labels2 = collect(N1+1:N1+N2)
-    for (a1, a2) in zip(l1.axes, l2.axes)
+    for (a1, a2) in zip(l1 |> axis, l2 |> axis)
         labels2[a2] = labels1[a1]
     end
     tensorcontract(ts1, labels1, ts2, labels2)

@@ -28,6 +28,7 @@ end
 @testset "mps & vec" begin
     v = randn(ComplexF64, 1<<7)
     @test v |> vec2mps |> vec ≈ v
+    @test vec2mps(v, l=2) |> vec ≈ v
 end
 
 @testset "scalar arithmatics" begin
@@ -39,4 +40,44 @@ end
         @test 2*mps1 |> vec ≈ v1*2
         @test -mps1 |> vec ≈ -v1
     end
+end
+
+@testset "mps arithmatics" begin
+    for l = [0, 3, 7]
+        mps1 = rand_mps(ComplexF64, 2, [1,2,4,8,8,4,2,1], l=l)
+        v1 = mps1|>vec
+        v1 == mps1 |> vec
+        @test isapprox.(mps1 - mps1 |> vec, 0, atol=1e-12) |> all
+        mps1 + mps1 |> vec ≈ v1*2
+        v2 = sum([mps1, mps1]) |> vec
+        @test v2 ≈ v1 *2
+    end
+end
+
+
+@testset "canomove" begin
+    mps = rand_mps(2, [1,2,4,4,2,1])
+    v0 = mps |> vec
+    @test_throws ArgumentError canomove!(mps, :left) |> println
+
+    canomove!(mps, :right)
+    @test assert_valid(mps)
+    @test l_canonical(mps) == 1
+    canomove!(mps, 4)
+    @test l_canonical(mps) == 5
+    canomove!(mps, -4)
+    @test l_canonical(mps) == 1
+    canomove!(mps, :left)
+    @test l_canonical(mps) == 0
+    canomove!(mps, 0)
+    @test l_canonical(mps) == 0
+    v1 = mps |> vec
+    @test v0 ≈ v1
+end
+
+@testset "ket bra contract" begin
+    mps = rand_mps(2,[1,2,3,4,2,1])
+    v = mps |> vec
+    @test mps' * mps ≈ v'*v
+    @test inner_product(Val(:left), mps', mps) ≈ v'*v
 end

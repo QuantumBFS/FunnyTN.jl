@@ -4,8 +4,8 @@ struct MPOTensor{T, AT<:DenseArray{T, 4}} <: Tensor{T, 4}
     MPOTensor(ts::AbstractArray{T, 4}) where T = new{T, typeof(ts)}(ts)
 end
 
-getindex(mt::MPOTensor, ::Type{Val{:upbond}}) = Leg(mt, 2)
-getindex(mt::MPOTensor, ::Type{Val{:downbond}}) = Leg(mt, 3)
+getindex(mt::MPOTensor, ::LegIndex{:up}) = 2
+getindex(mt::MPOTensor, ::LegIndex{:down}) = 3
 
 """
     MPO{T} <: TensorTrain

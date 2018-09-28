@@ -258,3 +258,63 @@ function recanonicalize!(mps::MPS; move_right_first::Bool=true, tol::Real=1e-15,
     end
     mps
 end
+
+function *(bra::MPS, ket::MPS)
+    TM = bra[1][↓] ∾ ket[1][↑]
+    for i = 1:nsite(bra)
+        TM[:topright] * bra[i][←]
+        TM[:bottomright] * ket[i][←]
+    end
+    TM
+end
+
+#=
+function adjoint!(mps::MPS)
+    conj!.(mps |> tensors)
+    conj!.(mps |> singular_values)
+    mps
+end
+=#
+
+function braket_contract(::Val{:right}, X::Matrix, A::MPSTensor, B::MPSTensor=A)
+    @tensor Y[i, j] := (X[a, b] * B[b, p, j]) * conj(A[a, p, i])
+end
+
+function braket_contract(::Val{:right}, ::UniformScaling{Bool}, A::MPSTensor, B::MPSTensor=A)
+    @tensor Y[i, j] := B[a, p, j] * conj(A[a, p, i])
+end
+
+function braket_contract(::Val{:left}, X::Matrix, A::MPSTensor, B::MPSTensor=A)
+    @tensor Y[a, b] := (X[i, j] * B[b, p, j]) * conj(A[a, p, i])
+end
+
+function braket_contract(::Val{:left}, ::UniformScaling{Bool}, A::MPSTensor, B::MPSTensor=A)
+    @tensor Y[a, b] := B[b, p, i] * conj(A[a, p, i])
+end
+
+braket_contract(direction::Symbol, args...) = braket_contract(Val(direction), args...)
+
+function inner_product(::Val{:right}, bra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
+    tbra = bra|>parent|>tensors_withS
+    tket = ket|>tensors_withS
+    C = braket_contract(:right, I, tbra[1], tket[1])
+    for i = 2:nsite(ket)
+        C = braket_contract(:right, C, tbra[i], tket[i])
+    end
+    C[]
+end
+
+function inner_product(::Val{:left}, bra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
+    tbra = bra|>parent|>tensors_withS
+    tket = ket|>tensors_withS
+    N = nsite(ket)
+    C = braket_contract(:left, I, tbra[N], tket[N])
+    for i = N-1:-1:1
+        C = braket_contract(:left, C, tbra[i], tket[i])
+    end
+    C[]
+end
+
+function *(bra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
+    inner_product(Val(:right), bra, ket)
+end

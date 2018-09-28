@@ -1,8 +1,8 @@
 """MPS Tensor"""
 const MPSTensor{T} = AbstractArray{T, 3}
 
-getindex(mt::MPSTensor, ::Type{Val{:upbond}}) = Leg(mt, 2)
-getindex(mt::MPSTensor, inds::Int...) = getindex(mt.data, inds...)
+mapaxis(mt::MPSTensor, ::LegIndex{:up}) = 2
+mapaxis(mt::MPSTensor, ::LegIndex{:down}) = 2
 
 """
     MPS{T, BC, TT<:MPSTensor{T}} <: TensorTrain{T, TT}
@@ -24,17 +24,30 @@ end
 
 function assert_valid(mps::MPS{BC}) where BC
     tss = mps |> tensors
+    l = l_canonical(mps)
+    S = singular_values(mps)
     assert_boundary_match(tss, BC)
     assert_samesize(tss, 2)
     assert_chainable(tss)
-    if !((mps.l > 0 && size(tss[mps.l], 3) == length(mps.S)) || (mps.l==0 && size(tss[1], 1)==length(mps.S)))
+    if !((l > 0 && size(tss[l], 3) == length(S)) || (l==0 && size(tss[1], 1)==length(S)))
         throw(DimensionMismatch("canonical position error, or size of S-matrix dimension error."))
     end
     true
 end
 
 tensors(mps::MPS) = mps.tensors
+function tensors_withS(mps::MPS)
+    res = [t for t in mps.tensors]
+    l = mps |> l_canonical
+    if l == 0
+        res[1] = mulaxis(res[1], 1, mps |> singular_values)
+    else
+        res[l] = mulaxis(res[l], 3, mps |> singular_values)
+    end
+    res
+end
 copy(m::MPS) = MPS{bcond(m)}([t for t in m.tensors], copy(m.S), m.l)
+deepcopy(m::MPS) = MPS{bcond(m)}([t |> copy for t in m.tensors], copy(m.S), m.l)
 
 """
     rand_mps([::Type], nflavor::Int, bond_dims::Vector{Int}) -> MPS
@@ -47,6 +60,7 @@ rand_mps(nflavor::Int, bond_dims::Vector{Int}; l=0) = rand_mps(ComplexF64, nflav
 singular_values(mps::MPS) = mps.S
 l_canonical(mps::MPS) = mps.l
 nflavor(mps::MPS) = size(first(mps), 2)
+adjoint(ket::MPS) = Adjoint(ket)
 bcond(mps::MPS{BC, T}) where {T, BC} = BC
 
 function show(io::IO, mps::MPS)
@@ -72,3 +86,17 @@ function hgetindex(mps::MPS, ind::Int)
     nflv = nflavor(mps)
     hgetindex(mps, CartesianIndices(Tuple(nflv for i=1:nsite(mps)))[ind].I)
 end
+
+#=
+##################### Bra #####################
+const Ket = MPS
+const Bra{BC, T, TT} = Adjoint{T, <:MPS{BC, T, TT}}
+const KetBra{BC, T, TT} = Union{Ket{BC, T, TT}, Bra{BC, T, TT}}
+
+@forward Bra.parent tensors, l_canonical, nflavor, bondsizes, bondsize, hsize
+hgetindex(bra::Bra, ind) = hgetindex(bra |> parent) |> conj
+copy(m::Bra) = adjoint(parent(m) |> copy)
+function show(io::IO, mps::Bra)
+    print(io, "Bra($(length(mps)))  ", size(mps[1], 1),(0==mps.l ? "*" : ""), join(["-[$(size(t, 2))]-$(size(t, 3))$(i==mps.l ? "*" : "")" for (i, t) in enumerate(mps)], ""))
+end
+=#

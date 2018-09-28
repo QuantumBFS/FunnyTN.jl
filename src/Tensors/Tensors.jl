@@ -5,7 +5,7 @@ import Base: push!, append!, prepend!, length, parent, getindex, size, insert!, 
 import Base: +, -, *, /, ∘
 
 export log2i, nqubits, all_equivalent, assert_samesize
-export Tensor, Leg, Bond, lastleg, firstleg
+export LegIndex, Tensor, Leg, Bond, lastleg, firstleg, axismap, axis
 export glue, mulaxis!, chain_tensors, mulaxis
 export ∾, ⧷,↑, ↓, ←, →
 
