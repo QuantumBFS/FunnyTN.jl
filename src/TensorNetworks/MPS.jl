@@ -16,7 +16,7 @@ mutable struct MPS{BC, T, TT<:MPSTensor{T}} <: MPSO{BC, T, 3, TT}
     function MPS{BC}(tensors::Vector{TT}, l::Int) where {BC, T, TT<:MPSTensor{T}}
         new{BC, T, TT}(tensors, l)
     end
-    MPS(tensors::Vector, l::Int=0) = MPS{:open}(tensors, l)
+    MPS(tensors::Vector, l::Int=1) = MPS{:open}(tensors, l)
 end
 
 function assert_valid(mps::MPS{BC}) where BC
@@ -59,6 +59,10 @@ bcond(mps::MPS{BC, T}) where {T, BC} = BC
 
 function show(io::IO, mps::MPS)
     print(io, "MPS($(length(mps)))  ", size(mps[1], 1), join(["-[$(size(t, 2))$(i==mps.l ? "*" : "")]-$(size(t, 3))" for (i, t) in enumerate(mps)], ""))
+end
+function show(io::IO, bra::Adjoint{<:Any, <:MPS})
+    mps = bra |> parent
+    print(io, "Bra($(length(mps)))  ", size(mps[1], 1), join(["-[$(size(t, 2))$(i==mps.l ? "*" : "")]-$(size(t, 3))" for (i, t) in enumerate(mps)], ""))
 end
 
 """

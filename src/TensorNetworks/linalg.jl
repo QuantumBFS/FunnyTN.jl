@@ -24,10 +24,7 @@ function sum(tts::Vector{<:MPSO{BC, T, N, TT}}) where {T, BC, N, TT}
     hndim = nflavor(tt0)
     nbit = nsite(tt0)
     MLs = [[tensors(mps)...] for mps in tts]
-
-    for (i, mis) in enumerate(zip(MLs...))
-        ML[i] = ⊕(i==1, i==nbit, BC, mis...)
-    end
+    ML = [⊕(i==1, i==nbit, BC, mis...) for (i, mis) in enumerate(zip(MLs...))]
     MPS{BC}(ML, l)
 end
 
@@ -36,9 +33,9 @@ rmul!(A::MPS, b::Number) = (rmul!(A |> ccenter, b); A)
 lmul!(a::Number, B::MPS) = (lmul!(a, B |> ccenter); B)
 -(A::MPS) = (-1)*A
 -(A::MPS, B::MPS) = A + (-1)*B
-*(A::MPS, b::Number) = rmul!(copy(A), b)
-/(A::MPS, b::Number) = rmul!(copy(A), 1/b)
-*(a::Number, B::MPS) = lmul!(a, copy(B))
+*(A::MPS, b::Number) = (A_ = copy(A); A_[A.l]*=b; A_)
+/(A::MPS, b::Number) = A*(1/b)
+*(a::Number, B::MPS) = B*a
 
 #################### TensorTrain ###############
 function vec(tt::TensorTrain{T}) where T
@@ -170,7 +167,7 @@ function canomove!(mps::MPS, direction::Symbol; tol::Real=1e-15, D::Int=typemax(
 
     AB = reshape(A, :, size(A, 3)) * reshape(B, size(B, 1), :)
     A_, S_, B_ = svdtrunc(AB, D=D, tol=tol)
-    direction == :right ? mulaxis!(B_, 1, S_) : mulaxis!(A_, 3, S_)
+    direction == :right ? mulaxis!(B_, 1, S_) : mulaxis!(A_, 2, S_)
     mps[l1] = reshape(A_, :, nflv, size(A_, 2))
     mps[l2] = reshape(B_, size(B_, 1), nflv, :)
     mps.l = l_
@@ -178,7 +175,6 @@ function canomove!(mps::MPS, direction::Symbol; tol::Real=1e-15, D::Int=typemax(
 end
 
 function canomove!(mps::MPS, direction::Integer; tol::Real=1e-15, D::Int=typemax(Int64), method=:SVD)
-    direction == 0 && return mps
     for i = 1:abs(direction)
         if direction > 0
             canomove!(mps, :right, tol=tol, D=D, method=method)
@@ -262,7 +258,8 @@ end
 
 braket_contract(direction::Symbol, args...) = braket_contract(Val(direction), args...)
 
-function inner_product(::Val{:right}, bra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
+function inner_product(::Val{:right}, abra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
+    bra = parent(abra)
     C = braket_contract(:right, I, bra[1], ket[1])
     for i = 2:nsite(ket)
         C = braket_contract(:right, C, bra[i], ket[i])
@@ -270,8 +267,9 @@ function inner_product(::Val{:right}, bra::Adjoint{<:Any, <:MPS{:open}}, ket::MP
     C[]
 end
 
-function inner_product(::Val{:left}, bra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
+function inner_product(::Val{:left}, abra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
     N = nsite(ket)
+    bra = parent(abra)
     C = braket_contract(:left, I, bra[N], ket[N])
     for i = N-1:-1:1
         C = braket_contract(:left, C, bra[i], ket[i])
@@ -295,7 +293,8 @@ function tmatrix_contract(::Val{:left}, T::TMatrix, A::MPSTensor, B::MPSTensor=A
 end
 tmatrix_contract(direction::Symbol, args...) = tmatrix_contract(Val(direction), args...)
 
-function tmatrix(::Val{:right}, bra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
+function tmatrix(::Val{:right}, abra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
+    bra = parent(abra)
     C = tmatrix_contract(bra[1], ket[1])
     for i = 2:nsite(ket)
         C = tmatrix_contract(:right, C, bra[i], ket[i])
@@ -303,7 +302,8 @@ function tmatrix(::Val{:right}, bra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:ope
     C
 end
 
-function tmatrix(::Val{:left}, bra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
+function tmatrix(::Val{:left}, abra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
+    bra = parent(abra)
     N = nsite(ket)
     C = tmatrix_contract(bra[N], ket[N])
     for i = N-1:-1:1
