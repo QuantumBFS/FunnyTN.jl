@@ -10,3 +10,16 @@ function tensors end
 assert tensor network structure `tn` is valid.
 """
 function assert_valid end
+
+"""
+    CanonicalityError <: Exception
+
+Canonicality error.
+"""
+struct CanonicalityError <: Exception
+    msg::String
+end
+
+function show(io::IO, e::CanonicalityError)
+    print(io, e.msg)
+end
