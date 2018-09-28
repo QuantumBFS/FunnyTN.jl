@@ -18,9 +18,9 @@ end
 @testset "constructor" begin
     m = rand_mps(2, [1,8,8,8,8,8,8,8,1])
     bcond(m) == :open
-    @test_throws DimensionMismatch MPS{:periodic}([randn(3,2,4), randn(4,2,4)], 0=>[0.0]) |> assert_valid
-    @test_throws DimensionMismatch MPS([randn(1,2,4), randn(5,2,1)]) |> assert_valid
-    @test_throws DimensionMismatch MPS([randn(1,2,4), randn(4,1,1)]) |> assert_valid
+    @test_throws DimensionMismatch MPS{:periodic}([randn(3,2,4), randn(4,2,4)], 0) |> assert_valid
+    @test_throws DimensionMismatch MPS([randn(1,2,4), randn(5,2,1)], 0) |> assert_valid
+    @test_throws DimensionMismatch MPS([randn(1,2,4), randn(4,1,1)], 0) |> assert_valid
     @test bondsize(m, 1) == 8
     @test bondsize(m, 0) == bondsize(m, 8) == 1
 end

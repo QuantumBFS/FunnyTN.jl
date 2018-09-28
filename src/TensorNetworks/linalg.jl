@@ -17,48 +17,31 @@ Returns:
 function sum(tts::Vector{<:MPSO{BC, T, N, TT}}) where {T, BC, N, TT}
     length(tts) == 0 && raise(ArgumentError("At least one instances are required."))
     length(tts) == 1 && return tts[0]
-    all_equivalent([l_canonical(tt) for tt in tts]) || raise(ArgumentError("canonicality does not match!"))
+    all_equivalent([cloc(tt) for tt in tts]) || raise(ArgumentError("canonicality does not match!"))
 
     tt0 = tts[1]
     l = tt0.l
     hndim = nflavor(tt0)
     nbit = nsite(tt0)
     MLs = [[tensors(mps)...] for mps in tts]
-
-    # get S matrix
-    ML = Vector{TT}(undef, nbit)
-    if BC == :open && (l == 0 || l==nbit)  # make open open
-        S = T[1]
-        for (tt, m) in zip(tts, MLs)
-            m[1] *= tt.S[]
-        end
-    else
-        S = cat([singular_values(tt) for tt in tts]..., dims=1)
-    end
-    for (i, mis) in enumerate(zip(MLs...))
-        ML[i] = ⊕(i==1, i==nbit, BC, mis...)
-    end
-    MPS{BC}(ML, l=>S)
+    ML = [⊕(i==1, i==nbit, BC, mis...) for (i, mis) in enumerate(zip(MLs...))]
+    MPS{BC}(ML, l)
 end
 
 +(mps1::T, mps2::T) where T<:MPS = sum([mps1, mps2])
-rmul!(A::MPS, b::Number) = (rmul!(A.S, b); A)
-lmul!(a::Number, B::MPS) = (lmul!(a, B.S); B)
+rmul!(A::MPS, b::Number) = (rmul!(A |> ccenter, b); A)
+lmul!(a::Number, B::MPS) = (lmul!(a, B |> ccenter); B)
 -(A::MPS) = (-1)*A
 -(A::MPS, B::MPS) = A + (-1)*B
-*(A::MPS, b::Number) = rmul!(copy(A), b)
-/(A::MPS, b::Number) = rmul!(copy(A), 1/b)
-*(a::Number, B::MPS) = lmul!(a, copy(B))
+*(A::MPS, b::Number) = (A_ = copy(A); A_[A.l]*=b; A_)
+/(A::MPS, b::Number) = A*(1/b)
+*(a::Number, B::MPS) = B*a
 
 #################### TensorTrain ###############
 function vec(tt::TensorTrain{T}) where T
     B = bondsize(tt, 0)
     res = Matrix{T}(I, B, B)
-    for i=1:tt.l
-        res = reshape(res ∘ tt[i], :, bondsize(tt, i))
-    end
-    mulaxis!(res, 2, tt.S)
-    for i=tt.l+1:nsite(tt)
+    for i=1:nsite(tt)
         res = reshape(res ∘ tt[i], :, bondsize(tt, i))
     end
     res |> vec
@@ -83,7 +66,7 @@ tol:
 
 Return an <MPS> instance.
 """
-function vec2mps(v::Vector{T}; l::Int=0, nflavor::Int=2, method=:SVD, tol=1e-15) where T
+function vec2mps(v::Vector{T}; l::Int=1, nflavor::Int=2, method=:SVD, tol=1e-15) where T
     nsite = nqubits(v)
     state = reshape(v, :, 1)
     l >= 0 && l <= nsite || throw(BoundsError("canonical index out of range!"))
@@ -91,7 +74,7 @@ function vec2mps(v::Vector{T}; l::Int=0, nflavor::Int=2, method=:SVD, tol=1e-15)
     # right mover
     ML = Vector{MPSTensor{T}}(undef, nsite)
     ri = 1
-    for i = 1:l
+    for i = 1:l-1
         state = reshape(state, nflavor * ri, :)
         U, state = decompose(method, :right, state)
         ri = size(U, 2)
@@ -106,8 +89,8 @@ function vec2mps(v::Vector{T}; l::Int=0, nflavor::Int=2, method=:SVD, tol=1e-15)
         ri = size(V, 1)
         ML[nsite-i+1] = reshape(V, ri, nflavor, :)
     end
-    S = state |> diag
-    MPS(ML, l=>S)
+    ML[l] = reshape(state, :, nflavor, ri)
+    MPS(ML, l)
 end
 
 function decompose(::Val{:QR}, ::Val{:right}, state::Matrix; D::Int=typemax(Int), tol=0)
@@ -165,21 +148,6 @@ function decompose(method::Symbol, direction::Symbol, state::Matrix; D::Int=type
     decompose(Val(method), Val(direction), state, tol=tol)
 end
 
-function canomove!(mps::MPS{:open}, ::Val{:_rightmost})
-    S = sqrt(sum(mulaxis!(mps[end], 1, mps.S).^2))
-    mps.S = [S]
-    mps[end] ./= S
-    mps.l += 1
-    mps
-end
-function canomove!(mps::MPS{:open}, ::Val{:_leftmost})
-    S = sqrt(sum(mulaxis!(mps[1], 3, mps.S).^2))
-    mps.S = [S]
-    mps[1] ./= S
-    mps.l -= 1
-    mps
-end
-
 """
     canomove!(mps::MPS, direction::Symbol; tol::Real=1e-15, D::Int=typemax(Int64), method=:SVD) -> MPS
 
@@ -191,25 +159,22 @@ function canomove!(mps::MPS, direction::Symbol; tol::Real=1e-15, D::Int=typemax(
     l_ = mps.l + (direction == :right ? 1 : -1)
 
     # bounds check
-    l_ == nbit && return canomove!(mps, Val(:_rightmost))
-    l_ == 0 && return canomove!(mps, Val(:_leftmost))
-    (l_>nbit || l_<0) && throw(ArgumentError("Illegal Move!"))
+    (l_>nbit || l_<=0) && throw(ArgumentError("Illegal Move!"))
+    l1, l2 = min(l_, mps.l), max(l_, mps.l)
 
     nflv = nflavor(mps)
-    A, B = mps[l_], mps[l_+1]
-    direction == :right ? mulaxis!(A, 1, mps.S) : mulaxis!(B, 3, mps.S)
+    A, B = mps[l1], mps[l2]
 
     AB = reshape(A, :, size(A, 3)) * reshape(B, size(B, 1), :)
     A_, S_, B_ = svdtrunc(AB, D=D, tol=tol)
-    mps[l_] = reshape(A_, :, nflv, size(A_, 2))
-    mps[l_+1] = reshape(B_, size(B_, 1), nflv, :)
-    mps.S = S_
+    direction == :right ? mulaxis!(B_, 1, S_) : mulaxis!(A_, 2, S_)
+    mps[l1] = reshape(A_, :, nflv, size(A_, 2))
+    mps[l2] = reshape(B_, size(B_, 1), nflv, :)
     mps.l = l_
     mps
 end
 
 function canomove!(mps::MPS, direction::Integer; tol::Real=1e-15, D::Int=typemax(Int64), method=:SVD)
-    direction == 0 && return mps
     for i = 1:abs(direction)
         if direction > 0
             canomove!(mps, :right, tol=tol, D=D, method=method)
@@ -271,7 +236,6 @@ end
 #=
 function adjoint!(mps::MPS)
     conj!.(mps |> tensors)
-    conj!.(mps |> singular_values)
     mps
 end
 =#
@@ -294,23 +258,21 @@ end
 
 braket_contract(direction::Symbol, args...) = braket_contract(Val(direction), args...)
 
-function inner_product(::Val{:right}, bra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
-    tbra = bra|>parent|>tensors_withS
-    tket = ket|>tensors_withS
-    C = braket_contract(:right, I, tbra[1], tket[1])
+function inner_product(::Val{:right}, abra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
+    bra = parent(abra)
+    C = braket_contract(:right, I, bra[1], ket[1])
     for i = 2:nsite(ket)
-        C = braket_contract(:right, C, tbra[i], tket[i])
+        C = braket_contract(:right, C, bra[i], ket[i])
     end
     C[]
 end
 
-function inner_product(::Val{:left}, bra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
-    tbra = bra|>parent|>tensors_withS
-    tket = ket|>tensors_withS
+function inner_product(::Val{:left}, abra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
     N = nsite(ket)
-    C = braket_contract(:left, I, tbra[N], tket[N])
+    bra = parent(abra)
+    C = braket_contract(:left, I, bra[N], ket[N])
     for i = N-1:-1:1
-        C = braket_contract(:left, C, tbra[i], tket[i])
+        C = braket_contract(:left, C, bra[i], ket[i])
     end
     C[]
 end
@@ -331,23 +293,21 @@ function tmatrix_contract(::Val{:left}, T::TMatrix, A::MPSTensor, B::MPSTensor=A
 end
 tmatrix_contract(direction::Symbol, args...) = tmatrix_contract(Val(direction), args...)
 
-function tmatrix(::Val{:right}, bra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
-    tbra = bra|>parent|>tensors_withS
-    tket = ket|>tensors_withS
-    C = tmatrix_contract(tbra[1], tket[1])
+function tmatrix(::Val{:right}, abra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
+    bra = parent(abra)
+    C = tmatrix_contract(bra[1], ket[1])
     for i = 2:nsite(ket)
-        C = tmatrix_contract(:right, C, tbra[i], tket[i])
+        C = tmatrix_contract(:right, C, bra[i], ket[i])
     end
     C
 end
 
-function tmatrix(::Val{:left}, bra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
-    tbra = bra|>parent|>tensors_withS
-    tket = ket|>tensors_withS
+function tmatrix(::Val{:left}, abra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
+    bra = parent(abra)
     N = nsite(ket)
-    C = tmatrix_contract(tbra[N], tket[N])
+    C = tmatrix_contract(bra[N], ket[N])
     for i = N-1:-1:1
-        C = tmatrix_contract(:left, C, tbra[i], tket[i])
+        C = tmatrix_contract(:left, C, bra[i], ket[i])
     end
     C
 end

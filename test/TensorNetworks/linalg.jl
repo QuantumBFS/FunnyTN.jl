@@ -32,7 +32,7 @@ end
 end
 
 @testset "scalar arithmatics" begin
-    for l = [0, 3, 7]
+    for l = [1, 3, 7]
         mps1 = rand_mps(ComplexF64, 2, [1,2,4,8,8,4,2,1], l=l)
         v1 = mps1 |> vec
         @test mps1*2 |> vec ≈ v1*2
@@ -43,7 +43,7 @@ end
 end
 
 @testset "mps arithmatics" begin
-    for l = [0, 3, 7]
+    for l = [1, 3, 7]
         mps1 = rand_mps(ComplexF64, 2, [1,2,4,8,8,4,2,1], l=l)
         v1 = mps1|>vec
         v1 == mps1 |> vec
@@ -62,15 +62,15 @@ end
 
     canomove!(mps, :right)
     @test assert_valid(mps)
-    @test l_canonical(mps) == 1
-    canomove!(mps, 4)
-    @test l_canonical(mps) == 5
-    canomove!(mps, -4)
-    @test l_canonical(mps) == 1
+    @test cloc(mps) == 2
+    canomove!(mps, 3)
+    @test cloc(mps) == 5
+    canomove!(mps, -3)
+    @test cloc(mps) == 2
     canomove!(mps, :left)
-    @test l_canonical(mps) == 0
+    @test cloc(mps) == 1
     canomove!(mps, 0)
-    @test l_canonical(mps) == 0
+    @test cloc(mps) == 1
     v1 = mps |> vec
     @test v0 ≈ v1
 end
