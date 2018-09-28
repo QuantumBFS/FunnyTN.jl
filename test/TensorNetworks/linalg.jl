@@ -81,3 +81,10 @@ end
     @test mps' * mps ≈ v'*v
     @test inner_product(Val(:left), mps', mps) ≈ v'*v
 end
+
+@testset "transfer matrix" begin
+    mps = rand_mps(2,[1,2,3,4,2,1])
+    v = mps |> vec
+    @test tmatrix(Val(:left), mps', mps)[] ≈ v'*v
+    @test tmatrix(Val(:right), mps', mps)[] ≈ v'*v
+end

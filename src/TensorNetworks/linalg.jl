@@ -318,3 +318,36 @@ end
 function *(bra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
     inner_product(Val(:right), bra, ket)
 end
+
+function tmatrix_contract(A::MPSTensor, B::MPSTensor=A)
+    @tensor T[j1,i1,j2,i2] := B[i1,p,i2]*conj(A)[j1,p,j2]
+end
+
+function tmatrix_contract(::Val{:right}, T::TMatrix, A::MPSTensor, B::MPSTensor=A)
+    @tensor T[j0,i0,j2,i2] := (T[j0,i0,j1,i1]*B[i1,p,i2]) * conj(A)[j1,p,j2]
+end
+function tmatrix_contract(::Val{:left}, T::TMatrix, A::MPSTensor, B::MPSTensor=A)
+    @tensor T[j2,i2,j1,i1] := (T[j0,i0,j1,i1]*B[i2,p,i0]) * conj(A)[j2,p,j0]
+end
+tmatrix_contract(direction::Symbol, args...) = tmatrix_contract(Val(direction), args...)
+
+function tmatrix(::Val{:right}, bra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
+    tbra = bra|>parent|>tensors_withS
+    tket = ket|>tensors_withS
+    C = tmatrix_contract(tbra[1], tket[1])
+    for i = 2:nsite(ket)
+        C = tmatrix_contract(:right, C, tbra[i], tket[i])
+    end
+    C
+end
+
+function tmatrix(::Val{:left}, bra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
+    tbra = bra|>parent|>tensors_withS
+    tket = ket|>tensors_withS
+    N = nsite(ket)
+    C = tmatrix_contract(tbra[N], tket[N])
+    for i = N-1:-1:1
+        C = tmatrix_contract(:left, C, tbra[i], tket[i])
+    end
+    C
+end
