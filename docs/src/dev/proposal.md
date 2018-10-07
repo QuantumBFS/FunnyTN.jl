@@ -1,4 +1,5 @@
 # MPS proposal
+A tensor network is often clearly represented as a contraction graph, however, in programming, it is hard to represent a contraction graph. 
 
 # 1. Tensor Level Design
 ## Basic Rules

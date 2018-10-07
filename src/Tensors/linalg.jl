@@ -28,7 +28,19 @@ end
 chain_tensors(ts::Tensor...) = reduce(chain_tensors, ts)
 
 glue(legs::Leg...) = reduce(glue, legs)
-function glue(l1::Leg{C1, AT1}, l2::Leg{C2, AT2}) where {C1, C2, T1, T2, N1, N2, AT1<:Tensor{T1, N1}, AT2<:Tensor{T2, N2}}
+function glue(l1::Leg{AXIS1, AT1}, l2::Leg{AXIS2, AT2}) where {AXES1, AXES2, T1, T2, N1, N2, AT1<:Tensor{T1, N1}, AT2<:Tensor{T2, N2}}
+    ts1 = parent(l1)
+    ts2 = parent(l2)
+    labels1 = 1:N1
+    labels2 = collect(N1+1:N1+N2)
+    labels2[AXIS2] = labels1[AXIS1]
+    tensorcontract(ts1, labels1, ts2, labels2)
+end
+glue(l::Leg, v::Vector) = glue(l, Leg(v, 1))
+glue(v::Vector, l::Leg) = glue(Leg(v, 1), l)
+
+#=
+function _glue(l1::NLeg{C1, AT1}, l2::NLeg{C2, AT2}) where {C1, C2, T1, T2, N1, N2, AT1<:Tensor{T1, N1}, AT2<:Tensor{T2, N2}}
     ts1 = parent(l1)
     ts2 = parent(l2)
     labels1 = 1:N1
@@ -38,5 +50,4 @@ function glue(l1::Leg{C1, AT1}, l2::Leg{C2, AT2}) where {C1, C2, T1, T2, N1, N2,
     end
     tensorcontract(ts1, labels1, ts2, labels2)
 end
-glue(l::Leg{1}, v::Vector) = glue(l, Leg(v, 1))
-glue(v::Vector, l::Leg{1}) = glue(Leg(v, 1), l)
+=#

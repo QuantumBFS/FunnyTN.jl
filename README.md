@@ -14,16 +14,3 @@ See our funny [proposal](docs/src/dev/proposal.md) of utf-8 based design.
 In the same Pkg mode, type `test FunnyTN` to run tests.
 
 The project folder is `~/.julia/dev/FunnyTN`.
-
-## WHY WE USE THE 1000COKE LICENSE IN THIS REPO
-Open sourse licenses often emphasis open and free at the same time.
-But "open and free" is also harmful to the diversity of software industry.
-This "1000COKE" license allows an opensource software to triger a payment when they are used in commerial activities and has a possible effect.
-
-To most developers, this license is the same as MIT license.
-However, to intermediate/big companies that use the software in commercial activities and make a win, it matters.
-
-This license is able to
-1. encourage software startups
-2. prevent "pirating" opensource softwares (it is strange if someone can sell slightly modified open source software to users without feedback to original developer!)
-3. encourage better open source quality (open source software can never beat the closed counterpart, since they can always inspect your functions and write a better one!).
