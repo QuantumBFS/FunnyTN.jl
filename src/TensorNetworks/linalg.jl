@@ -159,7 +159,7 @@ function canomove!(mps::MPS, direction::Symbol; tol::Real=1e-15, D::Int=typemax(
     l_ = mps.l + (direction == :right ? 1 : -1)
 
     # bounds check
-    (l_>nbit || l_<=0) && throw(ArgumentError("Illegal Move!"))
+    (l_>nbit || l_<=0) && throw(ArgumentError("Illegal Move! l=$l_"))
     l1, l2 = min(l_, mps.l), max(l_, mps.l)
 
     nflv = nflavor(mps)
@@ -199,8 +199,8 @@ function compress!(mps::MPS, D::Int; tol::Real=1e-15, niter::Int=3, method=:SVD)
         m2 = D + (dM * ((niter - i - 1.0) / niter)) |> round |> Int
         canomove!(mps, nbit - l, tol=tol, D=m1, method=method)
         canomove!(mps, l-nbit, tol=tol, D=m2, method=method)
-        canomove!(mps, -l, tol=tol, D=m1, method=method)
-        canomove!(mps, l, tol=tol, D=m2, method=method)
+        canomove!(mps, -l+1, tol=tol, D=m1, method=method)
+        canomove!(mps, l-1, tol=tol, D=m2, method=method)
     end
     mps
 end

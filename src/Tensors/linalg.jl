@@ -28,7 +28,7 @@ end
 chain_tensors(ts::Tensor...) = reduce(chain_tensors, ts)
 
 glue(legs::Leg...) = reduce(glue, legs)
-function glue(l1::Leg{AXIS1, AT1}, l2::Leg{AXIS2, AT2}) where {AXES1, AXES2, T1, T2, N1, N2, AT1<:Tensor{T1, N1}, AT2<:Tensor{T2, N2}}
+function glue(l1::Leg{AXIS1, AT1}, l2::Leg{AXIS2, AT2}) where {AXIS1, AXIS2, T1, T2, N1, N2, AT1<:Tensor{T1, N1}, AT2<:Tensor{T2, N2}}
     ts1 = parent(l1)
     ts2 = parent(l2)
     labels1 = 1:N1
