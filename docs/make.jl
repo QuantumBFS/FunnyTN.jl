@@ -1,12 +1,15 @@
 using Documenter, FunnyTN
 
-# TODO: use Literate to process examples
-# using Literate
 # preprocess tutorial scripts
+using Literate, Pkg
+tutorialpath = joinpath(@__DIR__, "src/tutorial")
+for jlfile in ["tutorial.jl"]
+    Literate.markdown(joinpath(tutorialpath, jlfile), tutorialpath)
+end
 
 # make documents
 makedocs(
-    modules = [FunnyTN],
+    modules = [FunnyTN, FunnyTN.Tensors, FunnyTN.TensorNetworks],
     clean = false,
     format = :html,
     sitename = "FunnyTN.jl",
@@ -14,8 +17,12 @@ makedocs(
     analytics = "UA-89508993-1",
     pages = [
         "Home" => "index.md",
-        "Tutorial" => "tutorial.md",
-        "Manual" => "funnytn.md",
+        "Tutorial" => "tutorial/tutorial.md",
+        "Manual" => Any[
+            "man/funnytn.md",
+            "man/tensors.md",
+            "man/tensornetworks.md",
+        ],
     ],
     html_prettyurls = !("local" in ARGS),
     html_canonical = "https://quantumbfs.github.io/FunnyTN.jl/latest/",

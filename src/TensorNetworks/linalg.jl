@@ -195,8 +195,8 @@ function compress!(mps::MPS, D::Int; tol::Real=1e-15, niter::Int=3, method=:SVD)
     M = maximum(bondsizes(mps))
     dM = max(M - D, 0)
     for i in 1:niter
-        m1 = D + (dM * ((niter - i - 0.5) / niter)) |> round |> Int
-        m2 = D + (dM * ((niter - i - 1.0) / niter)) |> round |> Int
+        m1 = D + (dM * ((niter - i + 0.5) / niter)) |> round |> Int
+        m2 = D + (dM * ((niter - i) / niter)) |> round |> Int
         canomove!(mps, nbit - l, tol=tol, D=m1, method=method)
         canomove!(mps, l-nbit, tol=tol, D=m2, method=method)
         canomove!(mps, -l+1, tol=tol, D=m1, method=method)

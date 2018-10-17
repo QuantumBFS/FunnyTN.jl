@@ -1,0 +1,44 @@
+```@meta
+EditURL = "https://github.com/TRAVIS_REPO_SLUG/blob/master/"
+```
+
+# Tutorial
+
+```@example tutorial
+using FunnyTN.TensorNetworks
+using LinearAlgebra
+using Test, BenchmarkTools
+```
+
+## Matrix Product State
+
+```@example tutorial
+import LinearAlgebra: normalize!, norm
+normalize!(mps::MPS) = rmul!(mps, 1/sqrt(mps'*mps))
+norm(mps::MPS) = sqrt(mps'*mps)
+isnormalized(mps::MPS) = norm(mps) ≈ 1
+```
+
+### Example: compressing
+Let's prepair an MPS and two copies of them
+
+```@example tutorial
+mps0 = rand_mps(2, [1,5,8, 16, 64,100, 400, 400, 200, 200, 100, 80, 40, 20, 6, 1], l=1)
+mps0 |> normalize!
+@test mps0 |> isnormalized
+mps1 = copy(mps0)
+mps2 = copy(mps0)
+```
+
+Now, let's compress `mps1` and `mps2` in two different ways, sweep and direct.
+We will see sweep has higher fidelity than direct compress.
+
+```@example tutorial
+compress!(mps1, 20)
+canomove!(mps2, nsite(mps2)-1, D=20)
+@show mps1'*mps0
+@show mps2'*mps0
+```
+
+*This page was generated using [Literate.jl](https://github.com/fredrikekre/Literate.jl).*
+
