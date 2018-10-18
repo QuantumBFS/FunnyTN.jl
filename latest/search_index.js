@@ -53,7 +53,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Tutorial",
     "title": "Matrix Product State",
     "category": "section",
-    "text": "import LinearAlgebra: normalize!, norm\nnormalize!(mps::MPS) = rmul!(mps, 1/sqrt(mps\'*mps))\nnorm(mps::MPS) = sqrt(mps\'*mps)\nisnormalized(mps::MPS) = norm(mps) ≈ 1"
+    "text": "isnormalized(mps::MPS) = norm(mps) ≈ 1"
 },
 
 {
@@ -113,11 +113,51 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
+    "location": "man/tensors/#FunnyTN.Tensors.bra_ket_prod",
+    "page": "FunnyTN.Tensors",
+    "title": "FunnyTN.Tensors.bra_ket_prod",
+    "category": "function",
+    "text": "bra_ket_prod(A::MPSTensor, B::MPSTensor=A)\n\nbra-ket contraction, returns\n\n--A*--\n  |\n--B---\n\n\n\n\n\n"
+},
+
+{
     "location": "man/tensors/#FunnyTN.Tensors.log2i",
     "page": "FunnyTN.Tensors",
     "title": "FunnyTN.Tensors.log2i",
     "category": "function",
     "text": "log2i(x::Integer) -> Integer\n\nReturn log2(x), with integer input only.\n\n\n\n\n\n"
+},
+
+{
+    "location": "man/tensors/#FunnyTN.Tensors.mpo_ket_prod-Tuple{AbstractArray{T,3} where T,AbstractArray{T,4} where T}",
+    "page": "FunnyTN.Tensors",
+    "title": "FunnyTN.Tensors.mpo_ket_prod",
+    "category": "method",
+    "text": "mpo_ket_prod(O::MPOTensor, B::MPSTensor)\n\nmpo-mps contract, returns\n\n  |\n--O*--\n  |   \n--B---\n\n\n\n\n\n"
+},
+
+{
+    "location": "man/tensors/#FunnyTN.Tensors.t_bra_ket_prod-Tuple{Symbol,Vararg{Any,N} where N}",
+    "page": "FunnyTN.Tensors",
+    "title": "FunnyTN.Tensors.t_bra_ket_prod",
+    "category": "method",
+    "text": "ket_bra_prod(DIRECTION, T::TMatrix, A::MPSTensor, B::MPSTensor=A)\n\ntransfer_tensor-bra-ket contraction, returns\n\nDIRECTION == :left     –A–⊤–       |   T     –B–-⊥– DIRECTION == :right     –⊤–A–       T  |       –⊥–B–-\n\n\n\n\n\n"
+},
+
+{
+    "location": "man/tensors/#FunnyTN.Tensors.tt_dadd-Union{Tuple{Vararg{AbstractArray{T,N},N1} where N1}, Tuple{N}, Tuple{T}} where N where T",
+    "page": "FunnyTN.Tensors",
+    "title": "FunnyTN.Tensors.tt_dadd",
+    "category": "method",
+    "text": "tt_dadd(ts::Tensor{T, N}...) -> Tensor{T, N}\n\ntensor train direct add.\n\n\n\n\n\n"
+},
+
+{
+    "location": "man/tensors/#FunnyTN.Tensors.x_bra_ket_prod-Tuple{Symbol,Vararg{Any,N} where N}",
+    "page": "FunnyTN.Tensors",
+    "title": "FunnyTN.Tensors.x_bra_ket_prod",
+    "category": "method",
+    "text": "x_bra_ket_prod(DIRECTION, X::Matrix, A::MPSTensor, B::MPSTensor=A)\n\nmatrix-bra-ket contraction, returns\n\nDIRECTION == :left     –A*–⊤       |   X     –B–-⊥\n\nDIRECTION == :right     ⊤–A*–     X  |       ⊥–B–-\n\n\n\n\n\n"
 },
 
 {
@@ -157,15 +197,7 @@ var documenterSearchIndex = {"docs": [
     "page": "FunnyTN.TensorNetworks",
     "title": "FunnyTN.TensorNetworks.MPO",
     "category": "type",
-    "text": "MPO{T} <: TensorTrain\n\nMatrix Product Operator.\n\nWe use the following convention to number legs:     2     |  1–A–4     |     3\n\nllink -> 1 ulink -> 2 dlink -> 3 rlink -> 4\n\n\n\n\n\n"
-},
-
-{
-    "location": "man/tensornetworks/#FunnyTN.TensorNetworks.MPOTensor",
-    "page": "FunnyTN.TensorNetworks",
-    "title": "FunnyTN.TensorNetworks.MPOTensor",
-    "category": "type",
-    "text": "MPO Tensor\n\n\n\n\n\n"
+    "text": "MPO{T} <: TensorTrain\n\nMatrix Product Operator.\n\nWe use the following convention to number legs:     2     |  1–A–4     |     3\n\n\n\n\n\n"
 },
 
 {
@@ -182,14 +214,6 @@ var documenterSearchIndex = {"docs": [
     "title": "FunnyTN.TensorNetworks.MPSO",
     "category": "type",
     "text": "Tensor Train with homogeneous tensor rank.\n\n\n\n\n\n"
-},
-
-{
-    "location": "man/tensornetworks/#FunnyTN.TensorNetworks.MPSTensor",
-    "page": "FunnyTN.TensorNetworks",
-    "title": "FunnyTN.TensorNetworks.MPSTensor",
-    "category": "type",
-    "text": "MPS Tensor\n\n\n\n\n\n"
 },
 
 {
@@ -289,11 +313,35 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/tensornetworks/#Base.sum-Union{Tuple{Array{#s28,1} where #s28<:MPSO{BC,T,N,TT}}, Tuple{TT}, Tuple{N}, Tuple{BC}, Tuple{T}} where TT where N where BC where T",
+    "location": "man/tensornetworks/#Base.getindex-Tuple{AbstractArray{T,4} where T,FunnyTN.Tensors.LegIndex{:up}}",
+    "page": "FunnyTN.TensorNetworks",
+    "title": "Base.getindex",
+    "category": "method",
+    "text": "MPO Tensor\n\n\n\n\n\n"
+},
+
+{
+    "location": "man/tensornetworks/#Base.sum-Union{Tuple{Array{#s34,1} where #s34<:MPSO{BC,T,N,TT}}, Tuple{TT}, Tuple{N}, Tuple{BC}, Tuple{T}} where TT where N where BC where T",
     "page": "FunnyTN.TensorNetworks",
     "title": "Base.sum",
     "category": "method",
     "text": "Summation over <MPS>es.\n\nArgs:     tts (list of <MPS>): instances to be added.     labels (list of str): the new labels for added state.\n\nReturns:     <MPS>, the added MPS.\n\n\n\n\n\n"
+},
+
+{
+    "location": "man/tensornetworks/#FunnyTN.TensorNetworks._tt_dadd_bc-Union{Tuple{N}, Tuple{T}, Tuple{Bool,Bool,Symbol,Vararg{AbstractArray{T,N},N1} where N1}} where N where T",
+    "page": "FunnyTN.TensorNetworks",
+    "title": "FunnyTN.TensorNetworks._tt_dadd_bc",
+    "category": "method",
+    "text": "in addition of tensor trains, we need to take boundary condition into consideration.\n\n\n\n\n\n"
+},
+
+{
+    "location": "man/tensornetworks/#FunnyTN.TensorNetworks.mapaxis-Tuple{AbstractArray{T,3} where T,FunnyTN.Tensors.LegIndex{:up}}",
+    "page": "FunnyTN.TensorNetworks",
+    "title": "FunnyTN.TensorNetworks.mapaxis",
+    "category": "method",
+    "text": "MPS Tensor\n\n\n\n\n\n"
 },
 
 {

@@ -3,9 +3,6 @@ using FunnyTN.TensorNetworks
 using LinearAlgebra
 
 # ## Matrix Product State
-import LinearAlgebra: normalize!, norm
-normalize!(mps::MPS) = rmul!(mps, 1/sqrt(mps'*mps))
-norm(mps::MPS) = sqrt(mps'*mps)
 isnormalized(mps::MPS) = norm(mps) ≈ 1
 
 # ### Example: compressing
