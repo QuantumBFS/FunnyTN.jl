@@ -97,6 +97,22 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
+    "location": "man/tensors/#FunnyTN.Tensors.absorb_bra_ket-Tuple{Symbol,Any,AbstractArray{T,3} where T,AbstractArray{T,3} where T}",
+    "page": "FunnyTN.Tensors",
+    "title": "FunnyTN.Tensors.absorb_bra_ket",
+    "category": "method",
+    "text": "absorb_bra_ket(DIRECTION, {T::Tensor}, A::MPSTensor, B::MPSTensor=A) -> Tensor\nabsorb_bra_ket(DIRECTION, I, A::MPSTensor, B::MPSTensor=A) -> Tensor\n\ntensor ← bra, ket -> tensor, T can be lazy. Returns\n\nT is rank 2, DIRECTION == :left     –A*–⊤       |   T     –B–-⊥\n\nT is rank2, DIRECTION == :right     ⊤–A*–     T  |     ⊥–B–-\n\nT is rank 4, DIRECTION == :left     –A*–⊤–       |   T     –B–-⊥–\n\nT is rank 4, DIRECTION == :right     –⊤–A*–       T  |     –⊥–B–-\n\n\n\n\n\n"
+},
+
+{
+    "location": "man/tensors/#FunnyTN.Tensors.absorb_mpo-Tuple{AbstractArray{T,4} where T}",
+    "page": "FunnyTN.Tensors",
+    "title": "FunnyTN.Tensors.absorb_mpo",
+    "category": "method",
+    "text": "absorb_mpo({B::Tensor}, O::MPOTensor) -> Tensor\n\nmps ← mpo -> mps, returns\n\nB is rank 3            |         /–O*–∖      ==    |    ==         ∖–B–-/\n\n\n\n\n\n"
+},
+
+{
     "location": "man/tensors/#FunnyTN.Tensors.all_equivalent-Tuple{Any}",
     "page": "FunnyTN.Tensors",
     "title": "FunnyTN.Tensors.all_equivalent",
@@ -129,19 +145,11 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/tensors/#FunnyTN.Tensors.mpo_ket_prod-Tuple{AbstractArray{T,3} where T,AbstractArray{T,4} where T}",
+    "location": "man/tensors/#FunnyTN.Tensors.mpo_ket_prod-Tuple{AbstractArray{T,4} where T,AbstractArray{T,3} where T}",
     "page": "FunnyTN.Tensors",
     "title": "FunnyTN.Tensors.mpo_ket_prod",
     "category": "method",
-    "text": "mpo_ket_prod(O::MPOTensor, B::MPSTensor)\n\nmpo-mps contract, returns\n\n  |\n--O*--\n  |   \n--B---\n\n\n\n\n\n"
-},
-
-{
-    "location": "man/tensors/#FunnyTN.Tensors.t_bra_ket_prod-Tuple{Symbol,Vararg{Any,N} where N}",
-    "page": "FunnyTN.Tensors",
-    "title": "FunnyTN.Tensors.t_bra_ket_prod",
-    "category": "method",
-    "text": "ket_bra_prod(DIRECTION, T::TMatrix, A::MPSTensor, B::MPSTensor=A)\n\ntransfer_tensor-bra-ket contraction, returns\n\nDIRECTION == :left     –A–⊤–       |   T     –B–-⊥– DIRECTION == :right     –⊤–A–       T  |       –⊥–B–-\n\n\n\n\n\n"
+    "text": "mpo_ket_prod(O::MPOTensor, B::MPSTensor)\n\nmpo-mps contract, returns\n\n  |\n--O*--\n  |\n--B---\n\n\n\n\n\n"
 },
 
 {
@@ -153,11 +161,11 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/tensors/#FunnyTN.Tensors.x_bra_ket_prod-Tuple{Symbol,Vararg{Any,N} where N}",
+    "location": "man/tensors/#FunnyTN.Tensors.absorb",
     "page": "FunnyTN.Tensors",
-    "title": "FunnyTN.Tensors.x_bra_ket_prod",
-    "category": "method",
-    "text": "x_bra_ket_prod(DIRECTION, X::Matrix, A::MPSTensor, B::MPSTensor=A)\n\nmatrix-bra-ket contraction, returns\n\nDIRECTION == :left     –A*–⊤       |   X     –B–-⊥\n\nDIRECTION == :right     ⊤–A*–     X  |       ⊥–B–-\n\n\n\n\n\n"
+    "title": "FunnyTN.Tensors.absorb",
+    "category": "function",
+    "text": "Tensor Absorption (holomophic transform of tensors)\n\nabsorb_mpo\nabsorbbraket\n\n\n\n\n\n"
 },
 
 {
@@ -261,7 +269,7 @@ var documenterSearchIndex = {"docs": [
     "page": "FunnyTN.TensorNetworks",
     "title": "FunnyTN.TensorNetworks.compress!",
     "category": "method",
-    "text": "compress(mps::MPS, D::Int; tol::Real=1e-15, niter::Int=3, method=:SVD) -> MPS\n\nCompress an mps.\n\n\n\n\n\n"
+    "text": "compress!(mps::MPS, D::Int; tol::Real=1e-15, niter::Int=3, method=:SVD) -> MPS\n\nCompress an mps.\n\n\n\n\n\n"
 },
 
 {
@@ -278,6 +286,14 @@ var documenterSearchIndex = {"docs": [
     "title": "FunnyTN.TensorNetworks.hsize",
     "category": "method",
     "text": "hsize(mps::MPS, [i::Int])\n\nsize of hilbert space.\n\n\n\n\n\n"
+},
+
+{
+    "location": "man/tensornetworks/#FunnyTN.TensorNetworks.naive_compress!-Tuple{FunnyTN.TensorNetworks.MPS,Int64}",
+    "page": "FunnyTN.TensorNetworks",
+    "title": "FunnyTN.TensorNetworks.naive_compress!",
+    "category": "method",
+    "text": "naive_compress!(mps::MPS, D::Int; tol::Real=1e-15, method=:SVD) -> MPS\n\nCompress an mps in a naive way.\n\n\n\n\n\n"
 },
 
 {
@@ -321,7 +337,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/tensornetworks/#Base.sum-Union{Tuple{Array{#s34,1} where #s34<:MPSO{BC,T,N,TT}}, Tuple{TT}, Tuple{N}, Tuple{BC}, Tuple{T}} where TT where N where BC where T",
+    "location": "man/tensornetworks/#Base.sum-Union{Tuple{Array{#s14,1} where #s14<:MPSO{BC,T,N,TT}}, Tuple{TT}, Tuple{N}, Tuple{BC}, Tuple{T}} where TT where N where BC where T",
     "page": "FunnyTN.TensorNetworks",
     "title": "Base.sum",
     "category": "method",

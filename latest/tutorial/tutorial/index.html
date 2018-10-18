@@ -14,5 +14,5 @@ mps1 = copy(mps0)
 mps2 = copy(mps0);</code></pre></div><p>Now, let&#39;s compress <code>mps1</code> and <code>mps2</code> in two different ways, sweep and direct. We will see sweep has higher fidelity than direct compress.</p><div><pre><code class="language-julia">compress!(mps1, 20)
 canomove!(mps2, nsite(mps2)-1, D=20)
 @show mps1&#39;*mps0
-@show mps2&#39;*mps0;</code></pre><pre><code class="language-none">mps1&#39; * mps0 = 0.5427223138089131 + 3.7887638606752885e-5im
-mps2&#39; * mps0 = 0.23670395569387204 + 4.163336342344337e-17im</code></pre></div><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p><footer><hr/><a class="previous" href="../../"><span class="direction">Previous</span><span class="title">Home</span></a><a class="next" href="../../man/funnytn/"><span class="direction">Next</span><span class="title">FunnyTN</span></a></footer></article></body></html>
+@show mps2&#39;*mps0;</code></pre><pre><code class="language-none">mps1&#39; * mps0 = 0.5840938258834274 + 1.2613593889279628e-5im
+mps2&#39; * mps0 = 0.2676246816337401 + 9.020562075079397e-17im</code></pre></div><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p><footer><hr/><a class="previous" href="../../"><span class="direction">Previous</span><span class="title">Home</span></a><a class="next" href="../../man/funnytn/"><span class="direction">Next</span><span class="title">FunnyTN</span></a></footer></article></body></html>
