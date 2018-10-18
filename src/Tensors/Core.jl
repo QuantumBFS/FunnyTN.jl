@@ -1,4 +1,7 @@
 const Tensor = AbstractArray
+const MPSTensor{T} = AbstractArray{T, 3}
+const MPOTensor{T} = AbstractArray{T, 4}
+const TMatrix{T} = AbstractArray{T, 4}
 
 """
     bond(tt::AbstractTN, l::Int) -> Bond

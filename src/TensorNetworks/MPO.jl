@@ -1,9 +1,4 @@
 """MPO Tensor"""
-struct MPOTensor{T, AT<:DenseArray{T, 4}} <: Tensor{T, 4}
-    data::AT
-    MPOTensor(ts::AbstractArray{T, 4}) where T = new{T, typeof(ts)}(ts)
-end
-
 getindex(mt::MPOTensor, ::LegIndex{:up}) = 2
 getindex(mt::MPOTensor, ::LegIndex{:down}) = 3
 
@@ -18,11 +13,6 @@ We use the following convention to number legs:
  1--A--4
     |
     3
-
-llink -> 1
-ulink -> 2
-dlink -> 3
-rlink -> 4
 """
 mutable struct MPO{BC, T} <: MPSO{BC, T, 4, MPOTensor{T}}
     tensors::Vector{MPOTensor{T}}

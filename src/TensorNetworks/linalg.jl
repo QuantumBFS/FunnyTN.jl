@@ -1,8 +1,9 @@
-⊕(isfirst::Bool, islast::Bool, bc::Symbol, ts::Tensor...) = ⊕(Val(isfirst), Val(islast), Val(bc), ts...)
-⊕(::Val, ::Val, ::Val, ts::Tensor{T, N}...) where {T, N} = cat(ts..., dims=(1, N))
-⊕(::Val{false}, ::Val{true}, ::Val{:open}, ts::Tensor{T, N}...) where {T, N} = cat(ts..., dims=1)
-⊕(::Val{true}, ::Val{false}, ::Val{:open}, ts::Tensor{T, N}...) where {T, N} = cat(ts..., dims=N)
-⊕(::Val{true}, ::Val{true}, ::Val{:open}, ts::Tensor{T, N}...) where {T, N} = sum(ts, dims=1)
+"""in addition of tensor trains, we need to take boundary condition into consideration."""
+_tt_dadd_bc(isfirst::Bool, islast::Bool, bc::Symbol, ts::Tensor{T, N}...) where {T, N} = _tt_dadd_bc(Val(isfirst), Val(islast), Val(bc), ts...)
+_tt_dadd_bc(::Val, ::Val, ::Val, ts::Tensor{T, N}...) where {T, N} = tt_dadd(ts...)
+_tt_dadd_bc(::Val{false}, ::Val{true}, ::Val{:open}, ts::Tensor{T, N}...) where {T, N} = cat(ts..., dims=1)
+_tt_dadd_bc(::Val{true}, ::Val{false}, ::Val{:open}, ts::Tensor{T, N}...) where {T, N} = cat(ts..., dims=N)
+_tt_dadd_bc(::Val{true}, ::Val{true}, ::Val{:open}, ts::Tensor{T, N}...) where {T, N} = sum(ts, dims=1)
 
 """
 Summation over <MPS>es.
@@ -24,7 +25,7 @@ function sum(tts::Vector{<:MPSO{BC, T, N, TT}}) where {T, BC, N, TT}
     hndim = nflavor(tt0)
     nbit = nsite(tt0)
     MLs = [[tensors(mps)...] for mps in tts]
-    ML = [⊕(i==1, i==nbit, BC, mis...) for (i, mis) in enumerate(zip(MLs...))]
+    ML = [_tt_dadd_bc(i==1, i==nbit, BC, mis...) for (i, mis) in enumerate(zip(MLs...))]
     MPS{BC}(ML, l)
 end
 
@@ -36,6 +37,16 @@ lmul!(a::Number, B::MPS) = (lmul!(a, B |> ccenter); B)
 *(A::MPS, b::Number) = (A_ = copy(A); A_[A.l]*=b; A_)
 /(A::MPS, b::Number) = A*(1/b)
 *(a::Number, B::MPS) = B*a
+
+norm(mps::MPS) = sqrt(mps'*mps)
+normalize!(mps::MPS) = rmul!(mps, 1/norm(mps))
+
+#################### MPS*MPO ###################
+function *(A::MPS, B::MPO)
+    for (ts, to) in zip(A, B)
+        
+    end
+end
 
 #################### TensorTrain ###############
 function vec(tt::TensorTrain{T}) where T
@@ -240,29 +251,11 @@ function adjoint!(mps::MPS)
 end
 =#
 
-function braket_contract(::Val{:right}, X::Matrix, A::MPSTensor, B::MPSTensor=A)
-    @tensor Y[i, j] := (X[a, b] * B[b, p, j]) * conj(A[a, p, i])
-end
-
-function braket_contract(::Val{:right}, ::UniformScaling{Bool}, A::MPSTensor, B::MPSTensor=A)
-    @tensor Y[i, j] := B[a, p, j] * conj(A[a, p, i])
-end
-
-function braket_contract(::Val{:left}, X::Matrix, A::MPSTensor, B::MPSTensor=A)
-    @tensor Y[a, b] := (X[i, j] * B[b, p, j]) * conj(A[a, p, i])
-end
-
-function braket_contract(::Val{:left}, ::UniformScaling{Bool}, A::MPSTensor, B::MPSTensor=A)
-    @tensor Y[a, b] := B[b, p, i] * conj(A[a, p, i])
-end
-
-braket_contract(direction::Symbol, args...) = braket_contract(Val(direction), args...)
-
 function inner_product(::Val{:right}, abra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
     bra = parent(abra)
-    C = braket_contract(:right, I, bra[1], ket[1])
+    C = x_bra_ket_prod(:right, I, bra[1], ket[1])
     for i = 2:nsite(ket)
-        C = braket_contract(:right, C, bra[i], ket[i])
+        C = x_bra_ket_prod(:right, C, bra[i], ket[i])
     end
     C[]
 end
@@ -270,9 +263,9 @@ end
 function inner_product(::Val{:left}, abra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
     N = nsite(ket)
     bra = parent(abra)
-    C = braket_contract(:left, I, bra[N], ket[N])
+    C = x_bra_ket_prod(:left, I, bra[N], ket[N])
     for i = N-1:-1:1
-        C = braket_contract(:left, C, bra[i], ket[i])
+        C = x_bra_ket_prod(:left, C, bra[i], ket[i])
     end
     C[]
 end
@@ -281,23 +274,11 @@ function *(bra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
     inner_product(Val(:right), bra, ket)
 end
 
-function tmatrix_contract(A::MPSTensor, B::MPSTensor=A)
-    @tensor T[j1,i1,j2,i2] := B[i1,p,i2]*conj(A)[j1,p,j2]
-end
-
-function tmatrix_contract(::Val{:right}, T::TMatrix, A::MPSTensor, B::MPSTensor=A)
-    @tensor T[j0,i0,j2,i2] := (T[j0,i0,j1,i1]*B[i1,p,i2]) * conj(A)[j1,p,j2]
-end
-function tmatrix_contract(::Val{:left}, T::TMatrix, A::MPSTensor, B::MPSTensor=A)
-    @tensor T[j2,i2,j1,i1] := (T[j0,i0,j1,i1]*B[i2,p,i0]) * conj(A)[j2,p,j0]
-end
-tmatrix_contract(direction::Symbol, args...) = tmatrix_contract(Val(direction), args...)
-
 function tmatrix(::Val{:right}, abra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
     bra = parent(abra)
-    C = tmatrix_contract(bra[1], ket[1])
+    C = bra_ket_prod(bra[1], ket[1])
     for i = 2:nsite(ket)
-        C = tmatrix_contract(:right, C, bra[i], ket[i])
+        C = t_bra_ket_prod(:right, C, bra[i], ket[i])
     end
     C
 end
@@ -305,9 +286,9 @@ end
 function tmatrix(::Val{:left}, abra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
     bra = parent(abra)
     N = nsite(ket)
-    C = tmatrix_contract(bra[N], ket[N])
+    C = bra_ket_prod(bra[N], ket[N])
     for i = N-1:-1:1
-        C = tmatrix_contract(:left, C, bra[i], ket[i])
+        C = t_bra_ket_prod(:left, C, bra[i], ket[i])
     end
     C
 end

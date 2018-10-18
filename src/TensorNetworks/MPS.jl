@@ -1,6 +1,4 @@
 """MPS Tensor"""
-const MPSTensor{T} = AbstractArray{T, 3}
-
 mapaxis(mt::MPSTensor, ::LegIndex{:up}) = 2
 mapaxis(mt::MPSTensor, ::LegIndex{:down}) = 2
 
