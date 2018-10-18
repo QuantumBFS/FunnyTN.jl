@@ -42,11 +42,7 @@ norm(mps::MPS) = sqrt(mps'*mps)
 normalize!(mps::MPS) = rmul!(mps, 1/norm(mps))
 
 #################### MPS*MPO ###################
-function *(A::MPS, B::MPO)
-    for (ts, to) in zip(A, B)
-        
-    end
-end
+*(A::MPO, B::MPS{:open}) = MPS([b |> absorb_mpo(a) for (a, b) in zip(A, B)])
 
 #################### TensorTrain ###############
 function vec(tt::TensorTrain{T}) where T
@@ -77,7 +73,7 @@ tol:
 
 Return an <MPS> instance.
 """
-function vec2mps(v::Vector{T}; l::Int=1, nflavor::Int=2, method=:SVD, tol=1e-15) where T
+function vec2mps(v::Vector{T}; l::Int=1, nflavor::Int=2, method=:SVD, D::Int=typemax(Int), tol=1e-15) where T
     nsite = nqubits(v)
     state = reshape(v, :, 1)
     l >= 0 && l <= nsite || throw(BoundsError("canonical index out of range!"))
@@ -87,7 +83,7 @@ function vec2mps(v::Vector{T}; l::Int=1, nflavor::Int=2, method=:SVD, tol=1e-15)
     ri = 1
     for i = 1:l-1
         state = reshape(state, nflavor * ri, :)
-        U, state = decompose(method, :right, state)
+        U, state = decompose(method, :right, state, D=D, tol=tol)
         ri = size(U, 2)
         ML[i] = reshape(U, :, nflavor, ri)
     end
@@ -96,7 +92,7 @@ function vec2mps(v::Vector{T}; l::Int=1, nflavor::Int=2, method=:SVD, tol=1e-15)
     ri = 1
     for i in 1:nsite-l
         state = reshape(state, :, nflavor * ri)
-        state, V = decompose(method, :left, state)
+        state, V = decompose(method, :left, state, D=D, tol=tol)
         ri = size(V, 1)
         ML[nsite-i+1] = reshape(V, ri, nflavor, :)
     end
@@ -104,24 +100,27 @@ function vec2mps(v::Vector{T}; l::Int=1, nflavor::Int=2, method=:SVD, tol=1e-15)
     MPS(ML, l)
 end
 
+
 function decompose(::Val{:QR}, ::Val{:right}, state::Matrix; D::Int=typemax(Int), tol=0)
     U, state = qr(state)
-    kpmask = _truncmask(sum(norm, state, dims=1), tol, D)
-    state = state[kpmask]
-    U = U[:, kpmask]
-    U, state
+    S = dropdims(mapslices(norm, state, dims=2), dims=2)
+    kpmask = _truncmask(S, tol, D)
+    state = state[kpmask,:]
+    U_ = Matrix(U)[:, kpmask]
+    U_, state
 end
 
 function decompose(::Val{:QR}, ::Val{:left}, state::Matrix; D::Int=typemax(Int), tol=0)
     state, V = rq(state)
-    kpmask = _truncmask(sum(norm, state, dims=1), tol, D)
+    S = dropdims(mapslices(norm, state, dims=1), dims=1)
+    kpmask = _truncmask(S, tol, D)
     state = state[:, kpmask]
-    V = V[kpmask]
+    V = V[kpmask, :]
     state, V
 end
 
 function _truncmask(S::Vector, tol::Real, D::Int)
-    D = min(D, length(res.S))
+    D = min(D, length(S))
     mval = max(sort(S, rev=true)[D], tol)
     S .>= mval
 end
@@ -146,17 +145,17 @@ function svdtrunc(state::Matrix; D::Int=typemax(Int), tol=0)
 end
 
 function decompose(::Val{:SVD}, ::Val{:left}, state::Matrix; D::Int=typemax(Int), tol=0)
-    U, S, V = svdtrunc(state, tol=tol)
+    U, S, V = svdtrunc(state, D=D, tol=tol)
     mulaxis!(U, 2, S), V
 end
 
 function decompose(::Val{:SVD}, ::Val{:right}, state::Matrix; D::Int=typemax(Int), tol=0)
-    U, S, V = svdtrunc(state, tol=tol)
+    U, S, V = svdtrunc(state, D=D, tol=tol)
     U, mulaxis!(V, 1, S)
 end
 
 function decompose(method::Symbol, direction::Symbol, state::Matrix; D::Int=typemax(Int), tol=0)
-    decompose(Val(method), Val(direction), state, tol=tol)
+    decompose(Val(method), Val(direction), state, D=D, tol=tol)
 end
 
 """
@@ -164,7 +163,7 @@ end
 
 move canonical center, direction can be :left, :right or Int (Int means moving right for n step).
 """
-function canomove!(mps::MPS, direction::Symbol; tol::Real=1e-15, D::Int=typemax(Int64), method=:SVD)
+function canomove!(mps::MPS, direction::Symbol; tol::Real=0, D::Int=typemax(Int64), method=:SVD)
     # check and prepair data
     nbit = mps |> nsite
     l_ = mps.l + (direction == :right ? 1 : -1)
@@ -177,15 +176,16 @@ function canomove!(mps::MPS, direction::Symbol; tol::Real=1e-15, D::Int=typemax(
     A, B = mps[l1], mps[l2]
 
     AB = reshape(A, :, size(A, 3)) * reshape(B, size(B, 1), :)
-    A_, S_, B_ = svdtrunc(AB, D=D, tol=tol)
-    direction == :right ? mulaxis!(B_, 1, S_) : mulaxis!(A_, 2, S_)
+    A_, B_ = decompose(method, direction, AB, D=D, tol=tol)
+    #A_, S_, B_ = svdtrunc(AB, D=D, tol=tol)
+    #direction == :right ? mulaxis!(B_, 1, S_) : mulaxis!(A_, 2, S_)
     mps[l1] = reshape(A_, :, nflv, size(A_, 2))
     mps[l2] = reshape(B_, size(B_, 1), nflv, :)
     mps.l = l_
     mps
 end
 
-function canomove!(mps::MPS, direction::Integer; tol::Real=1e-15, D::Int=typemax(Int64), method=:SVD)
+function canomove!(mps::MPS, direction::Integer; tol::Real=0, D::Int=typemax(Int64), method=:SVD)
     for i = 1:abs(direction)
         if direction > 0
             canomove!(mps, :right, tol=tol, D=D, method=method)
@@ -197,7 +197,7 @@ function canomove!(mps::MPS, direction::Integer; tol::Real=1e-15, D::Int=typemax
 end
 
 """
-    compress(mps::MPS, D::Int; tol::Real=1e-15, niter::Int=3, method=:SVD) -> MPS
+    compress!(mps::MPS, D::Int; tol::Real=1e-15, niter::Int=3, method=:SVD) -> MPS
 
 Compress an mps.
 """
@@ -213,6 +213,19 @@ function compress!(mps::MPS, D::Int; tol::Real=1e-15, niter::Int=3, method=:SVD)
         canomove!(mps, -l+1, tol=tol, D=m1, method=method)
         canomove!(mps, l-1, tol=tol, D=m2, method=method)
     end
+    mps
+end
+
+"""
+    naive_compress!(mps::MPS, D::Int; tol::Real=1e-15, method=:SVD) -> MPS
+
+Compress an mps in a naive way.
+"""
+function naive_compress!(mps::MPS, D::Int; tol::Real=1e-15, method=:SVD)
+    nbit = nsite(mps)
+    mps.l = 1
+    canomove!(mps, nbit-1, tol=0, D=mps|>bondsizes|>maximum, method=:QR)
+    canomove!(mps, -nbit+1, tol=tol, D=D, method=method)
     mps
 end
 
@@ -253,9 +266,9 @@ end
 
 function inner_product(::Val{:right}, abra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
     bra = parent(abra)
-    C = x_bra_ket_prod(:right, I, bra[1], ket[1])
+    C = absorb_bra_ket(:right, I, bra[1], ket[1])
     for i = 2:nsite(ket)
-        C = x_bra_ket_prod(:right, C, bra[i], ket[i])
+        C = absorb_bra_ket(:right, C, bra[i], ket[i])
     end
     C[]
 end
@@ -263,9 +276,9 @@ end
 function inner_product(::Val{:left}, abra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
     N = nsite(ket)
     bra = parent(abra)
-    C = x_bra_ket_prod(:left, I, bra[N], ket[N])
+    C = absorb_bra_ket(:left, I, bra[N], ket[N])
     for i = N-1:-1:1
-        C = x_bra_ket_prod(:left, C, bra[i], ket[i])
+        C = absorb_bra_ket(:left, C, bra[i], ket[i])
     end
     C[]
 end
@@ -278,7 +291,7 @@ function tmatrix(::Val{:right}, abra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:op
     bra = parent(abra)
     C = bra_ket_prod(bra[1], ket[1])
     for i = 2:nsite(ket)
-        C = t_bra_ket_prod(:right, C, bra[i], ket[i])
+        C = absorb_bra_ket(:right, C, bra[i], ket[i])
     end
     C
 end
@@ -288,7 +301,7 @@ function tmatrix(::Val{:left}, abra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:ope
     N = nsite(ket)
     C = bra_ket_prod(bra[N], ket[N])
     for i = N-1:-1:1
-        C = t_bra_ket_prod(:left, C, bra[i], ket[i])
+        C = absorb_bra_ket(:left, C, bra[i], ket[i])
     end
     C
 end

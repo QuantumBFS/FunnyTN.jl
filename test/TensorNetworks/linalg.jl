@@ -11,6 +11,14 @@ using Test
     left, right = decompose(:SVD, :right, v)
     @test left*right ≈ v
     @test left'*left ≈ I
+
+    v = randn(2, 4)
+    left, right = decompose(:QR, :left, v)
+    @test left*right ≈ v
+    @test right*right' ≈ I
+    left, right = decompose(:QR, :right, v)
+    @test left*right ≈ v
+    @test left'*left ≈ I
 end
 
 @testset "mps & vec" begin
@@ -41,7 +49,6 @@ end
         @test v2 ≈ v1 *2
     end
 end
-
 
 @testset "canomove" begin
     mps = rand_mps(2, [1,2,4,4,2,1])
@@ -75,4 +82,17 @@ end
     v = mps |> vec
     @test tmatrix(Val(:left), mps', mps)[] ≈ v'*v
     @test tmatrix(Val(:right), mps', mps)[] ≈ v'*v
+end
+
+@testset "compress" begin
+    mps = rand_mps_state(10)
+    @test compress!(copy(mps), 600, method=:SVD)'*mps ≈ 1
+    @test compress!(copy(mps), 600, method=:QR)'*mps ≈ 1
+end
+
+@testset "mpo*mps" begin
+    mpo = rand_mpo(7)
+    mps = rand_mps_state(7)
+    mps2 = mpo * mps
+    #@test mps2 |> vec ≈ Matrix(mpo)*vec(mps)
 end

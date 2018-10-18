@@ -9,7 +9,10 @@ export LegIndex, Tensor, MPSTensor, MPOTensor, TMatrix, Leg, Bond, lastleg, firs
 export glue, mulaxis!, chain_tensors, mulaxis
 
 # structure related tensor APIs
-export bra_ket_prod, t_bra_ket_prod, x_bra_ket_prod, mpo_ket_prod, tt_dadd
+export absorb_bra_ket, absorb_mpo
+export bra_ket_prod, mpo_ket_prod
+export tt_dadd
+export rq!, rq
 
 export ∾, ⧷,↑, ↓, ←, →
 

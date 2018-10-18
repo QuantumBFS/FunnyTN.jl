@@ -48,6 +48,7 @@ Random matrix product state.
 """
 rand_mps(::Type{T}, nflavor::Int, bond_dims::Vector{Int}; l=1) where T = MPS([randn(T, bond_dims[i], nflavor, bond_dims[i+1]) for i = 1:length(bond_dims)-1], l)
 rand_mps(nflavor::Int, bond_dims::Vector{Int}; l=1) = rand_mps(ComplexF64, nflavor, bond_dims, l=l)
+rand_mps_state(nbit::Int; D::Int=200) = (mps=rand_mps(2, [2^min(D, i-1,nbit-i+1) for i = 1:nbit+1]); mps/norm(mps))
 
 cloc(mps::MPS) = mps.l
 ccenter(mps::MPS) = mps[mps.l]
@@ -56,11 +57,11 @@ adjoint(ket::MPS) = Adjoint(ket)
 bcond(mps::MPS{BC, T}) where {T, BC} = BC
 
 function show(io::IO, mps::MPS)
-    print(io, "MPS($(length(mps)))  ", size(mps[1], 1), join(["-[$(size(t, 2))$(i==mps.l ? "*" : "")]-$(size(t, 3))" for (i, t) in enumerate(mps)], ""))
+    print(io, "MPS($(length(mps)))  ", size(mps[1], 1), join(["-$(i==mps.l ? "⚫" : "⚪")-$(size(t, 3))" for (i, t) in enumerate(mps)], ""))
 end
 function show(io::IO, bra::Adjoint{<:Any, <:MPS})
     mps = bra |> parent
-    print(io, "Bra($(length(mps)))  ", size(mps[1], 1), join(["-[$(size(t, 2))$(i==mps.l ? "*" : "")]-$(size(t, 3))" for (i, t) in enumerate(mps)], ""))
+    print(io, "Bra($(length(mps)))  ", size(mps[1], 1), join(["-$(i==mps.l ? "⚫" : "⚪")-$(size(t, 3))" for (i, t) in enumerate(mps)], ""))
 end
 
 """

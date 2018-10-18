@@ -39,6 +39,40 @@ end
 glue(l::Leg, v::Vector) = glue(l, Leg(v, 1))
 glue(v::Vector, l::Leg) = glue(Leg(v, 1), l)
 
+
+"""
+    tt_dadd(ts::Tensor{T, N}...) -> Tensor{T, N}
+
+tensor train direct add.
+"""
+tt_dadd(ts::Tensor{T, N}...) where {T, N} = cat(ts..., dims=(1, N))
+
+function rq!(A::AbstractMatrix)
+    M, N = size(A)
+    rq, tau = LAPACK.gerqf!(A)
+    if N<M
+        R = triu(rq, N-M)
+        Q = LAPACK.orgrq!(rq[M-N+1:M, :], tau)
+    else
+        R = triu(view(rq, :,N-M+1:N))
+        Q = LAPACK.orgrq!(rq, tau)
+    end
+    R, Q
+end
+rq(A) = rq!(copy(A))
+
+using Base: has_offset_axes
+function LinearAlgebra.triu!(M::AbstractMatrix, k::Integer)
+    @assert !has_offset_axes(M)
+    m, n = size(M)
+    for j in 1:min(n, m + k)
+        for i in max(1, j - k + 1):m
+            M[i,j] = zero(M[i,j])
+        end
+    end
+    M
+end
+
 #=
 function _glue(l1::NLeg{C1, AT1}, l2::NLeg{C2, AT2}) where {C1, C2, T1, T2, N1, N2, AT1<:Tensor{T1, N1}, AT2<:Tensor{T2, N2}}
     ts1 = parent(l1)

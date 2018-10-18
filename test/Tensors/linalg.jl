@@ -34,3 +34,23 @@ end
     @test res ≈ glue(v, Leg(a, 1))
     @test res ≈ glue(Leg(a, 1), v)
 end
+
+@testset "rq, triu" begin
+    mat=[1 2;
+         3 4;
+         5 6;
+         7 8]
+    res=[1 2;
+         3 4;
+         0 6;
+         0 0]
+    @test triu!(mat, -1) == res
+
+    a = randn(16, 4)
+    R, Q = rq!(copy(a))
+    @test R*Q ≈ a
+
+    a = randn(4, 16)
+    R, Q = rq!(copy(a))
+    @test R*Q ≈ a
+end
