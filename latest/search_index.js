@@ -97,11 +97,19 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/tensors/#FunnyTN.Tensors.absorb_bra_ket-Tuple{Symbol,Any,AbstractArray{T,3} where T,AbstractArray{T,3} where T}",
+    "location": "man/tensors/#FunnyTN.Tensors.absorb_bra_ket-Tuple{AbstractArray{T,3} where T,AbstractArray{T,3} where T}",
     "page": "FunnyTN.Tensors",
     "title": "FunnyTN.Tensors.absorb_bra_ket",
     "category": "method",
-    "text": "absorb_bra_ket(DIRECTION, {T::Tensor}, A::MPSTensor, B::MPSTensor=A) -> Tensor\nabsorb_bra_ket(DIRECTION, I, A::MPSTensor, B::MPSTensor=A) -> Tensor\n\ntensor ← bra, ket -> tensor, T can be lazy. Returns\n\nT is rank 2, DIRECTION == :left     –A*–⊤       |   T     –B–-⊥\n\nT is rank2, DIRECTION == :right     ⊤–A*–     T  |     ⊥–B–-\n\nT is rank 4, DIRECTION == :left     –A*–⊤–       |   T     –B–-⊥–\n\nT is rank 4, DIRECTION == :right     –⊤–A*–       T  |     –⊥–B–-\n\n\n\n\n\n"
+    "text": "absorb_bra_ket({leg::Leg{DIRECTION, T}}, A::MPSTensor, B::MPSTensor=A) -> Tensor\n\ntensor ← bra, ket -> tensor, leg can be lazy. Returns\n\nT is rank 2, DIRECTION is ⇇     –A*–⊤       |   T     –B–-⊥\n\nT is rank 2, DIRECTION is ⇉     ⊤–A*–     T  |     ⊥–B–-\n\nT is I, DIRECTION is ⇇     –A*–⊤       |   |     –B–-⊥\n\nT is I, DIRECTION is ⇉     ⊤–A*–     |  |     ⊥–B–-\n\nT is rank 4, DIRECTION is ⇇     –A*–⊤–       |   T     –B–-⊥–\n\nT is rank 4, DIRECTION is ⇉     –⊤–A*–       T  |     –⊥–B–-\n\n\n\n\n\n"
+},
+
+{
+    "location": "man/tensors/#FunnyTN.Tensors.absorb_ket-Tuple{AbstractArray{T,3} where T}",
+    "page": "FunnyTN.Tensors",
+    "title": "FunnyTN.Tensors.absorb_ket",
+    "category": "method",
+    "text": "absorb_ket({leg::Leg{DIRECTION, T}}, O::MPSTensor) -> T\n\nT\' ← (ket <-> T), returns\n\nT is rank 2, DIRECTION is →        ‖      |  |      B–O*–\n\n\n\n\n\n"
 },
 
 {
@@ -109,7 +117,7 @@ var documenterSearchIndex = {"docs": [
     "page": "FunnyTN.Tensors",
     "title": "FunnyTN.Tensors.absorb_mpo",
     "category": "method",
-    "text": "absorb_mpo({B::Tensor}, O::MPOTensor) -> Tensor\n\nmps ← mpo -> mps, returns\n\nB is rank 3            |         /–O*–∖      ==    |    ==         ∖–B–-/\n\n\n\n\n\n"
+    "text": "absorb_mpo({leg::Leg{DIRECTION, T}}, O::MPOTensor) -> T\n\nT\' ← (mpo <-> T), returns\n\nT is rank 3, DIRECTION is ↑            |         /–O*–∖      ==    |    ==         ∖–B–-/\n\nT is rank 3, DIRECTION is →        ‖      |  |      B–O*–      |  |        ‖\n\n\n\n\n\n"
 },
 
 {
@@ -149,7 +157,31 @@ var documenterSearchIndex = {"docs": [
     "page": "FunnyTN.Tensors",
     "title": "FunnyTN.Tensors.mpo_ket_prod",
     "category": "method",
-    "text": "mpo_ket_prod(O::MPOTensor, B::MPSTensor)\n\nmpo-mps contract, returns\n\n  |\n--O*--\n  |\n--B---\n\n\n\n\n\n"
+    "text": "mpo_ket_prod(O::MPOTensor, B::MPSTensor)\n\nmpo-mps contract, up and down wise, returns\n\n  |\n--O*--\n  |\n--B---\n\n\n\n\n\n"
+},
+
+{
+    "location": "man/tensors/#FunnyTN.Tensors.mps_mps_prod-Tuple{AbstractArray{T,3} where T,AbstractArray{T,3} where T}",
+    "page": "FunnyTN.Tensors",
+    "title": "FunnyTN.Tensors.mps_mps_prod",
+    "category": "method",
+    "text": "mps_mps_prod(A::MPSTensor, B::MPSTensor)\n\nmps, mps contract, left and right wise, returns\n\n   |  |\n --B--O*--\n\n\n\n\n\n"
+},
+
+{
+    "location": "man/tensors/#FunnyTN.Tensors.t2_mps_prod-Tuple{AbstractArray{T,2} where T,AbstractArray{T,3} where T}",
+    "page": "FunnyTN.Tensors",
+    "title": "FunnyTN.Tensors.t2_mps_prod",
+    "category": "method",
+    "text": "t2_mps_prod(A::AbstractMatrix, B::MPSTensor) ->\n\nmatrix, mps contract, left and right wise, returns\n\n |  |\n B--O*--\n\n\n\n\n\n"
+},
+
+{
+    "location": "man/tensors/#FunnyTN.Tensors.t3_mpo_prod-Tuple{AbstractArray{T,3} where T,AbstractArray{T,4} where T}",
+    "page": "FunnyTN.Tensors",
+    "title": "FunnyTN.Tensors.t3_mpo_prod",
+    "category": "method",
+    "text": "t3_mpo_prod(B::MPSTensor, O::MPOTensor)\n\ntensor(rank=3)-mpo contract, left and right wise, returns\n\n|  |\nB--O*--\n|  |\n\n\n\n\n\n"
 },
 
 {
@@ -297,7 +329,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/tensornetworks/#FunnyTN.TensorNetworks.rand_mps-Union{Tuple{T}, Tuple{Type{T},Int64,Array{Int64,1}}} where T",
+    "location": "man/tensornetworks/#FunnyTN.TensorNetworks.rand_mps-Union{Tuple{T}, Tuple{Type{T},Array{Int64,1}}} where T",
     "page": "FunnyTN.TensorNetworks",
     "title": "FunnyTN.TensorNetworks.rand_mps",
     "category": "method",
