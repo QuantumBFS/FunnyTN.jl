@@ -46,9 +46,10 @@ deepcopy(m::MPS) = MPS{bcond(m)}([t |> copy for t in m.tensors], m.l)
 
 Random matrix product state.
 """
-rand_mps(::Type{T}, nflavor::Int, bond_dims::Vector{Int}; l=1) where T = MPS([randn(T, bond_dims[i], nflavor, bond_dims[i+1]) for i = 1:length(bond_dims)-1], l)
-rand_mps(nflavor::Int, bond_dims::Vector{Int}; l=1) = rand_mps(ComplexF64, nflavor, bond_dims, l=l)
-rand_mps_state(nbit::Int; D::Int=200) = (mps=rand_mps(2, [2^min(D, i-1,nbit-i+1) for i = 1:nbit+1]); mps/norm(mps))
+rand_mps(::Type{T}, bond_dims::Vector{Int}; nflavor::Int=2, l=1) where T = MPS([randn(T, bond_dims[i], nflavor, bond_dims[i+1]) for i = 1:length(bond_dims)-1], l)
+rand_mps(::Type{T}, nbit::Int, D::Int=200; kwargs...) where T = rand_mps([2^min(D, i-1,nbit-i+1) for i = 1:nbit+1], kwargs...)
+rand_mps(bond_dims::Vector{Int}; kwargs...) = rand_mps(ComplexF64, bond_dims, kwargs...)
+rand_mps(nbit::Int, D::Int=200; kwargs...) = rand_mps(ComplexF64, nbit, D, kwargs...)
 
 cloc(mps::MPS) = mps.l
 ccenter(mps::MPS) = mps[mps.l]
@@ -57,11 +58,11 @@ adjoint(ket::MPS) = Adjoint(ket)
 bcond(mps::MPS{BC, T}) where {T, BC} = BC
 
 function show(io::IO, mps::MPS)
-    print(io, "MPS($(length(mps)))  ", size(mps[1], 1), join(["-$(i==mps.l ? "⚫" : "⚪")-$(size(t, 3))" for (i, t) in enumerate(mps)], ""))
+    print(io, "MPS($(length(mps)))  ", size(mps[1], 1), join(["-$(i==mps.l ? "▲" : "△")-$(size(t, 3))" for (i, t) in enumerate(mps)], ""))
 end
 function show(io::IO, bra::Adjoint{<:Any, <:MPS})
     mps = bra |> parent
-    print(io, "Bra($(length(mps)))  ", size(mps[1], 1), join(["-$(i==mps.l ? "⚫" : "⚪")-$(size(t, 3))" for (i, t) in enumerate(mps)], ""))
+    print(io, "Bra($(length(mps)))  ", size(mps[1], 1), join(["-$(i==mps.l ? "▼" : "▽")-$(size(t, 3))" for (i, t) in enumerate(mps)], ""))
 end
 
 """

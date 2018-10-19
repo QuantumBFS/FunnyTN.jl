@@ -9,12 +9,12 @@ export LegIndex, Tensor, MPSTensor, MPOTensor, TMatrix, Leg, Bond, lastleg, firs
 export glue, mulaxis!, chain_tensors, mulaxis
 
 # structure related tensor APIs
-export absorb_bra_ket, absorb_mpo
-export bra_ket_prod, mpo_ket_prod
+export absorb_bra_ket, absorb_mpo, absorb_ket
+export bra_ket_prod, mpo_ket_prod, t3_mpo_prod, t2_mps_prod, mps_mps_prod
 export tt_dadd
 export rq!, rq
 
-export ∾, ⧷,↑, ↓, ←, →
+export ∾, ⧷,↑, ↓, ←, →, ⇉, ⇇
 
 include("Core.jl")
 include("Leg.jl")

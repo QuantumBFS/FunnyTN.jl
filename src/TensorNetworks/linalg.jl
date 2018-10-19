@@ -42,14 +42,13 @@ norm(mps::MPS) = sqrt(mps'*mps)
 normalize!(mps::MPS) = rmul!(mps, 1/norm(mps))
 
 #################### MPS*MPO ###################
-*(A::MPO, B::MPS{:open}) = MPS([b |> absorb_mpo(a) for (a, b) in zip(A, B)])
+*(A::MPO, B::MPS{:open}) = MPS([b[↑] |> absorb_mpo(a) for (a, b) in zip(A, B)])
 
 #################### TensorTrain ###############
-function vec(tt::TensorTrain{T}) where T
-    B = bondsize(tt, 0)
-    res = Matrix{T}(I, B, B)
-    for i=1:nsite(tt)
-        res = reshape(res ∘ tt[i], :, bondsize(tt, i))
+function vec(mps::MPS{:open, T}) where T
+    res = dropdims(mps[1], dims=1)
+    for i=2:nsite(mps)
+        res = res[→] |> absorb_ket(mps[i])
     end
     res |> vec
 end
@@ -100,8 +99,7 @@ function vec2mps(v::Vector{T}; l::Int=1, nflavor::Int=2, method=:SVD, D::Int=typ
     MPS(ML, l)
 end
 
-
-function decompose(::Val{:QR}, ::Val{:right}, state::Matrix; D::Int=typemax(Int), tol=0)
+function decompose(::Val{:QR}, ::Val{:right}, state::Matrix; D::Int=typemax(Int), tol::Real=0)
     U, state = qr(state)
     S = dropdims(mapslices(norm, state, dims=2), dims=2)
     kpmask = _truncmask(S, tol, D)
@@ -110,7 +108,7 @@ function decompose(::Val{:QR}, ::Val{:right}, state::Matrix; D::Int=typemax(Int)
     U_, state
 end
 
-function decompose(::Val{:QR}, ::Val{:left}, state::Matrix; D::Int=typemax(Int), tol=0)
+function decompose(::Val{:QR}, ::Val{:left}, state::Matrix; D::Int=typemax(Int), tol::Real=0)
     state, V = rq(state)
     S = dropdims(mapslices(norm, state, dims=1), dims=1)
     kpmask = _truncmask(S, tol, D)
@@ -266,9 +264,9 @@ end
 
 function inner_product(::Val{:right}, abra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
     bra = parent(abra)
-    C = absorb_bra_ket(:right, I, bra[1], ket[1])
+    C = I[⇉] |> absorb_bra_ket(bra[1], ket[1])
     for i = 2:nsite(ket)
-        C = absorb_bra_ket(:right, C, bra[i], ket[i])
+        C = C[⇉] |> absorb_bra_ket(bra[i], ket[i])
     end
     C[]
 end
@@ -276,9 +274,9 @@ end
 function inner_product(::Val{:left}, abra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:open})
     N = nsite(ket)
     bra = parent(abra)
-    C = absorb_bra_ket(:left, I, bra[N], ket[N])
+    C = I[⇇] |> absorb_bra_ket(bra[N], ket[N])
     for i = N-1:-1:1
-        C = absorb_bra_ket(:left, C, bra[i], ket[i])
+        C = C[⇇] |> absorb_bra_ket(bra[i], ket[i])
     end
     C[]
 end
@@ -291,7 +289,7 @@ function tmatrix(::Val{:right}, abra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:op
     bra = parent(abra)
     C = bra_ket_prod(bra[1], ket[1])
     for i = 2:nsite(ket)
-        C = absorb_bra_ket(:right, C, bra[i], ket[i])
+        C = C[⇉] |> absorb_bra_ket(bra[i], ket[i])
     end
     C
 end
@@ -301,7 +299,7 @@ function tmatrix(::Val{:left}, abra::Adjoint{<:Any, <:MPS{:open}}, ket::MPS{:ope
     N = nsite(ket)
     C = bra_ket_prod(bra[N], ket[N])
     for i = N-1:-1:1
-        C = absorb_bra_ket(:left, C, bra[i], ket[i])
+        C = C[⇇] |> absorb_bra_ket(bra[i], ket[i])
     end
     C
 end

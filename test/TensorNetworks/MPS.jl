@@ -16,7 +16,7 @@ using Test
 end
 
 @testset "constructor" begin
-    m = rand_mps(2, [1,8,8,8,8,8,8,8,1])
+    m = rand_mps([1,8,8,8,8,8,8,8,1])
     bcond(m) == :open
     @test_throws DimensionMismatch MPS{:periodic}([randn(3,2,4), randn(4,2,4)], 0) |> assert_valid
     @test_throws DimensionMismatch MPS([randn(1,2,4), randn(5,2,1)], 0) |> assert_valid
@@ -27,7 +27,7 @@ end
 
 @testset "mps array interfaces" begin
     for l = [0, 3, 7]
-        mps1 = rand_mps(ComplexF64, 2, [1,2,4,8,8,4,2,1], l=l)
+        mps1 = rand_mps(ComplexF64, [1,2,4,8,8,4,2,1], l=l, nflavor=2)
         @test hsize(mps1) == (1<<7,)
         @test mps1 |> vec ≈ [hgetindex(mps1,i) for i=1:1<<7]
     end

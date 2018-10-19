@@ -29,7 +29,7 @@ end
 
 @testset "scalar arithmatics" begin
     for l = [1, 3, 7]
-        mps1 = rand_mps(ComplexF64, 2, [1,2,4,8,8,4,2,1], l=l)
+        mps1 = rand_mps(ComplexF64, [1,2,4,8,8,4,2,1], l=l)
         v1 = mps1 |> vec
         @test mps1*2 |> vec ≈ v1*2
         @test mps1/2 |> vec ≈ v1/2
@@ -40,7 +40,7 @@ end
 
 @testset "mps arithmatics" begin
     for l = [1, 3, 7]
-        mps1 = rand_mps(ComplexF64, 2, [1,2,4,8,8,4,2,1], l=l)
+        mps1 = rand_mps(ComplexF64, [1,2,4,8,8,4,2,1], l=l)
         v1 = mps1|>vec
         v1 == mps1 |> vec
         @test isapprox.(mps1 - mps1 |> vec, 0, atol=1e-12) |> all
@@ -51,7 +51,7 @@ end
 end
 
 @testset "canomove" begin
-    mps = rand_mps(2, [1,2,4,4,2,1])
+    mps = rand_mps([1,2,4,4,2,1])
     v0 = mps |> vec
     @test_throws ArgumentError canomove!(mps, :left) |> println
 
@@ -71,28 +71,28 @@ end
 end
 
 @testset "ket bra contract" begin
-    mps = rand_mps(2,[1,2,3,4,2,1])
+    mps = rand_mps([1,2,3,4,2,1])
     v = mps |> vec
     @test mps' * mps ≈ v'*v
     @test inner_product(Val(:left), mps', mps) ≈ v'*v
 end
 
 @testset "transfer matrix" begin
-    mps = rand_mps(2,[1,2,3,4,2,1])
+    mps = rand_mps([1,2,3,4,2,1])
     v = mps |> vec
     @test tmatrix(Val(:left), mps', mps)[] ≈ v'*v
     @test tmatrix(Val(:right), mps', mps)[] ≈ v'*v
 end
 
 @testset "compress" begin
-    mps = rand_mps_state(10)
+    mps = rand_mps(10, 200) |> normalize!
     @test compress!(copy(mps), 600, method=:SVD)'*mps ≈ 1
     @test compress!(copy(mps), 600, method=:QR)'*mps ≈ 1
 end
 
 @testset "mpo*mps" begin
     mpo = rand_mpo(7)
-    mps = rand_mps_state(7)
+    mps = rand_mps(7) |> normalize!
     mps2 = mpo * mps
-    #@test mps2 |> vec ≈ Matrix(mpo)*vec(mps)
+    @test mps2 |> vec ≈ Matrix(mpo)*vec(mps)
 end

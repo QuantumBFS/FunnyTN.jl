@@ -2,6 +2,10 @@ using FunnyTN.Tensors
 using TensorOperations, LinearAlgebra
 using Test
 
+@testset "contractions" begin
+    include("contractions.jl")
+end
+
 @testset "mpstensor" begin
     ts1 = randn(ComplexF64, 8,2,8)
     ts2 = randn(ComplexF64, 8,2,10)

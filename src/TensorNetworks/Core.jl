@@ -22,3 +22,6 @@ end
 function show(io::IO, e::CanonicalityError)
     print(io, e.msg)
 end
+
+const TNOrConjTN{T, TT} = Union{AbstractTN{T, TT}, Adjoint{<:Any, <:AbstractTN{T, TT}}}
+show(io::IO, mime::MIME"text/plain", tt::TNOrConjTN) = show(io, tt)

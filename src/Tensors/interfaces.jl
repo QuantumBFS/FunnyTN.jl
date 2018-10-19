@@ -2,6 +2,8 @@ const ↑ = LegIndex{:up}()
 const ↓ = LegIndex{:down}()
 const → = LegIndex{:last}()
 const ← = LegIndex{:first}()
+const ⇉ = LegIndex{:rightright}()
+const ⇇ = LegIndex{:leftleft}()
 
 ############### contraction #################
 ∾(l1::Leg, l2::Leg) = glue(l1, l2)

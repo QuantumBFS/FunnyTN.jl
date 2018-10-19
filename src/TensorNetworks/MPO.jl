@@ -35,6 +35,14 @@ function rand_mpo(::Type{T}, nbit::Int; b::Int=5, nflavor::Int=2) where T
     mpo
 end
 
+function Base.Matrix(mpo::MPO{:open, T}) where T
+    res = dropdims(mpo[1], dims=1)
+    for i=2:nsite(mpo)
+        res = res[→] |> absorb_mpo(mpo[i])
+    end
+    dropdims(res, dims=3)
+end
+
 function show(io::IO, mpo::MPO)
     print(io, "MPO($(length(mpo)))  ", size(mpo[1], 1), join(["-$(i==mpo.l ? "■" : "□")-$(size(t, 4))" for (i, t) in enumerate(mpo)], ""))
 end
